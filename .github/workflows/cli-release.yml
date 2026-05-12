@@ -30,11 +30,15 @@ jobs:
       - name: Compute semver tag
         id: tag
         run: |
-          # OSS GoReleaser requires a valid semver tag. Strip the `cli-` prefix.
+          # OSS GoReleaser requires a valid semver tag pointing to the current
+          # commit. Strip the `cli-` prefix and also create a local lightweight
+          # tag with the bare semver pointing at the same commit so GoReleaser's
+          # tag-on-HEAD check is satisfied.
           full="${GITHUB_REF#refs/tags/}"
           short="${full#cli-}"
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "short=$short" >> "$GITHUB_OUTPUT"
+          git tag -f "$short"
           echo "Tag: $full → semver: $short"
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v6
