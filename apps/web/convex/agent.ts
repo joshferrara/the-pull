@@ -399,11 +399,15 @@ export const syncTwitterBookmarks = action({
       id: string;
       text: string;
       author_id: string;
+      // note_tweet.text is the full body of premium long-form tweets (>280 chars).
       note_tweet?: { text?: string };
+      // X "Article" (Notes) object. Empirically, body lives in plain_text;
+      // preview_text is a short 195-char excerpt.
       article?: {
         id?: string;
         title?: string;
-        text?: string;
+        preview_text?: string;
+        plain_text?: string;
       };
       referenced_tweets?: Array<{ type: string; id: string }>;
       entities?: { urls?: Array<{ expanded_url: string }> };
@@ -452,7 +456,10 @@ export const syncTwitterBookmarks = action({
       }
       if (tweet.article) {
         if (tweet.article.title) parts.push(`Article: ${tweet.article.title}`);
-        if (tweet.article.text) parts.push(tweet.article.text);
+        // plain_text holds the full body (multi-KB); preview_text is a short
+        // excerpt. Prefer plain_text and fall back.
+        const body = tweet.article.plain_text ?? tweet.article.preview_text;
+        if (body) parts.push(body);
       }
       for (const ref of tweet.referenced_tweets ?? []) {
         const parent = refMap.get(ref.id);
@@ -462,7 +469,9 @@ export const syncTwitterBookmarks = action({
             `(${ref.type} of @${parentAuthor ?? parent.author_id}): ` +
               (parent.note_tweet?.text ?? parent.text ?? ""),
           );
-          if (parent.article?.text) parts.push(parent.article.text);
+          const parentBody =
+            parent.article?.plain_text ?? parent.article?.preview_text;
+          if (parentBody) parts.push(parentBody);
         }
       }
       // Tweet URL list as a hint of where to look for more context.
