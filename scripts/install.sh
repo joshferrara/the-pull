@@ -33,7 +33,8 @@ main() {
   url="https://github.com/$GH_OWNER/$GH_REPO/releases/download/$latest/${BIN_NAME}_${os}_${arch}.tar.gz"
   echo "==> Downloading $url"
   tmp=$(mktemp -d)
-  trap "rm -rf $tmp" EXIT
+  # shellcheck disable=SC2064 # $tmp captured at trap-set time on purpose.
+  trap "rm -rf '$tmp'" EXIT
   curl -fsSL "$url" | tar -xz -C "$tmp"
   mv "$tmp/$BIN_NAME" "$INSTALL_DIR/$BIN_NAME"
   chmod +x "$INSTALL_DIR/$BIN_NAME"

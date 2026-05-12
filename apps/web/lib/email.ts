@@ -26,7 +26,13 @@ class CloudflareEmailProvider implements EmailProvider {
       text: args.text,
       headers: args.headers,
     });
-    await env.EMAIL.send({ from: FROM, to: args.to, raw });
+    const emailBinding = (env as unknown as { EMAIL?: { send: (msg: { from: string; to: string; raw: string }) => Promise<void> } }).EMAIL;
+    if (!emailBinding) {
+      throw new Error(
+        "EMAIL binding missing. Enable Email Routing on the zone and uncomment send_email in wrangler.jsonc.",
+      );
+    }
+    await emailBinding.send({ from: FROM, to: args.to, raw });
     return { id: crypto.randomUUID() };
   }
 }

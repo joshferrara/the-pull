@@ -129,6 +129,24 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <section className="max-w-3xl mx-auto px-6 py-10 border-t border-[color:var(--color-surface1)]">
+        <h2 className="text-xs uppercase tracking-widest text-[color:var(--color-overlay1)] mb-6">
+          From the field
+        </h2>
+        <div className="grid md:grid-cols-2 gap-6 text-sm">
+          <Quote
+            text="Your testimonial here. Tell us what reading The Pull each morning has changed about how you build."
+            who="Add yours →"
+            href="#email"
+          />
+          <Quote
+            text="A second placeholder, swapped in as early readers send notes."
+            who=""
+            href="#email"
+          />
+        </div>
+      </section>
+
       <footer className="max-w-3xl mx-auto px-6 py-12 border-t border-[color:var(--color-surface1)] text-sm text-[color:var(--color-overlay1)] flex flex-wrap gap-x-6 gap-y-3">
         <Link href="/archive">Archive</Link>
         <Link href="/brief/latest">Today&apos;s brief</Link>
@@ -136,5 +154,22 @@ export default async function LandingPage() {
         <span className="ml-auto">by Josh Ferrara</span>
       </footer>
     </main>
+  );
+}
+
+function Quote({ text, who, href }: { text: string; who: string; href: string }) {
+  return (
+    <blockquote className="border-l-2 border-[color:var(--color-mauve)] pl-4 text-[color:var(--color-subtext1)]">
+      <p>&ldquo;{text}&rdquo;</p>
+      <footer className="mt-2 text-xs text-[color:var(--color-overlay1)]">
+        {who ? (
+          <Link href={href} className="text-[color:var(--color-mauve)]">
+            {who}
+          </Link>
+        ) : (
+          <span>—</span>
+        )}
+      </footer>
+    </blockquote>
   );
 }

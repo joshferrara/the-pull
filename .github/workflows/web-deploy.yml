@@ -19,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,8 +41,11 @@ jobs:
           command: deploy --config wrangler.jsonc
       - name: Smoke test
         run: |
+          # Hit the workers.dev hostname; switch to https://thepull.dev once
+          # the custom domain is wired (see docs/runbook.md).
+          URL="${SMOKE_URL:-https://the-pull-prod.joshferrara.workers.dev/api/health}"
           for i in {1..5}; do
-            if curl -fsS https://thepull.dev/api/health; then
+            if curl -fsS "$URL"; then
               echo "OK"
               exit 0
             fi
@@ -52,3 +53,5 @@ jobs:
           done
           echo "Smoke test failed" >&2
           exit 1
+        env:
+          SMOKE_URL: ${{ vars.SMOKE_URL }}

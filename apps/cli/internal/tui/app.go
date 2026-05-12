@@ -24,21 +24,29 @@ const (
 	ViewToday View = iota
 	ViewSaved
 	ViewHelp
+	ViewSearch
 )
 
+type SearchHit struct {
+	BriefDate string
+	Item      api.BriefItem
+}
+
 type Model struct {
-	client   *api.Client
-	db       *store.DB
-	brief    *api.Brief
-	view     View
-	cursor   int
-	width    int
-	height   int
-	loading  bool
-	status   string
-	detail   viewport.Model
-	saved    []store.SavedItem
-	renderer *glamour.TermRenderer
+	client      *api.Client
+	db          *store.DB
+	brief       *api.Brief
+	view        View
+	cursor      int
+	width       int
+	height      int
+	loading     bool
+	status      string
+	detail      viewport.Model
+	saved       []store.SavedItem
+	renderer    *glamour.TermRenderer
+	searchQuery string
+	searchHits  []SearchHit
 }
 
 type fetchResultMsg struct {
@@ -65,12 +73,44 @@ func New(client *api.Client, db *store.DB, initialView View) Model {
 	}
 }
 
+type drainTick struct{}
+
+func scheduleDrain() tea.Cmd {
+	return tea.Tick(30*time.Second, func(t time.Time) tea.Msg { return drainTick{} })
+}
+
 func (m Model) Init() tea.Cmd {
+	// Emit a launch event by queuing it — drainer will flush it.
+	_ = m.db.QueueEvent(api.EventPayload{Type: "tui_launch", Channel: "tui"})
 	return tea.Batch(
 		m.fetchToday(),
 		m.loadSaved(),
-		emitLaunchEvent(m.client),
+		m.drainEvents(),
+		scheduleDrain(),
 	)
+}
+
+// drainEvents pulls queued events from SQLite and POSTs them to /api/v1/events.
+// On success the rows are removed. Failures keep the rows for the next tick.
+func (m *Model) drainEvents() tea.Cmd {
+	client := m.client
+	db := m.db
+	return func() tea.Msg {
+		if client.Token == "" {
+			return drainTick{}
+		}
+		events, ids, err := db.DrainEvents()
+		if err != nil || len(events) == 0 {
+			return drainTick{}
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := client.SendEvents(ctx, events); err != nil {
+			return drainTick{}
+		}
+		_ = db.DeleteEventsByIDs(ids)
+		return drainTick{}
+	}
 }
 
 func (m *Model) fetchToday() tea.Cmd {
@@ -101,21 +141,6 @@ func (m *Model) loadSaved() tea.Cmd {
 	}
 }
 
-func emitLaunchEvent(client *api.Client) tea.Cmd {
-	return func() tea.Msg {
-		if client.Token == "" {
-			return nil
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = client.SendEvents(ctx, []api.EventPayload{{
-			Type:    "tui_launch",
-			Channel: "tui",
-		}})
-		return nil
-	}
-}
-
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -137,6 +162,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case savedRefreshMsg:
 		m.saved = msg.items
 		return m, nil
+	case drainTick:
+		// Schedule next drain plus run the current one.
+		return m, tea.Batch(scheduleDrain(), m.drainEvents())
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -150,11 +178,22 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.view = ViewToday
 		return m, nil
 	}
+	// Search mode handles its own keys (text input + navigation).
+	if m.view == ViewSearch {
+		return m.handleSearchKey(msg)
+	}
 	switch msg.String() {
 	case "q", "esc", "ctrl+c":
 		return m, tea.Quit
 	case "?":
 		m.view = ViewHelp
+		return m, nil
+	case "/":
+		m.view = ViewSearch
+		m.searchQuery = ""
+		m.cursor = 0
+		m.recomputeSearch()
+		m.renderDetail()
 		return m, nil
 	case "1":
 		m.view = ViewToday
@@ -230,20 +269,93 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) handleSearchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	s := msg.String()
+	switch s {
+	case "esc", "ctrl+c":
+		m.view = ViewToday
+		m.cursor = 0
+		m.searchQuery = ""
+		m.searchHits = nil
+		m.renderDetail()
+		return m, nil
+	case "enter":
+		if it := m.activeItem(); it != nil && len(it.Links) > 0 {
+			_ = openInBrowser(it.Links[0].URL)
+			m.recordEvent("item_link_click", it.ID)
+		}
+		return m, nil
+	case "down", "ctrl+j":
+		if m.cursor < len(m.searchHits)-1 {
+			m.cursor++
+		}
+		m.renderDetail()
+		return m, nil
+	case "up", "ctrl+k":
+		if m.cursor > 0 {
+			m.cursor--
+		}
+		m.renderDetail()
+		return m, nil
+	case "backspace":
+		if len(m.searchQuery) > 0 {
+			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+			m.cursor = 0
+			m.recomputeSearch()
+			m.renderDetail()
+		}
+		return m, nil
+	}
+	if len(s) == 1 {
+		m.searchQuery += s
+		m.cursor = 0
+		m.recomputeSearch()
+		m.renderDetail()
+	}
+	return m, nil
+}
+
+func (m *Model) recomputeSearch() {
+	q := strings.ToLower(strings.TrimSpace(m.searchQuery))
+	if q == "" {
+		m.searchHits = nil
+		return
+	}
+	dates, _ := cache.ListCached()
+	hits := make([]SearchHit, 0, 32)
+	for _, d := range dates {
+		b, err := cache.LoadByDate(d)
+		if err != nil || b == nil {
+			continue
+		}
+		for _, item := range b.Items {
+			hay := strings.ToLower(item.Title + " " + item.Summary + " " + strings.Join(item.Tags, " "))
+			if strings.Contains(hay, q) {
+				hits = append(hits, SearchHit{BriefDate: b.Date, Item: item})
+				if len(hits) >= 100 {
+					break
+				}
+			}
+		}
+		if len(hits) >= 100 {
+			break
+		}
+	}
+	m.searchHits = hits
+}
+
 func (m *Model) recordEvent(typ, itemID string) {
 	if m.client.Token == "" {
 		return
 	}
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = m.client.SendEvents(ctx, []api.EventPayload{{
-			Type:      typ,
-			BriefDate: m.activeBriefDate(),
-			ItemID:    itemID,
-			Channel:   "tui",
-		}})
-	}()
+	// Spec 6.5 step 5: queue events to SQLite so they survive offline,
+	// then let the background drainer flush them in batches.
+	_ = m.db.QueueEvent(api.EventPayload{
+		Type:      typ,
+		BriefDate: m.activeBriefDate(),
+		ItemID:    itemID,
+		Channel:   "tui",
+	})
 }
 
 func (m *Model) openWebView() tea.Cmd {
@@ -285,6 +397,11 @@ func (m Model) View() string {
 }
 
 func (m Model) renderHeader() string {
+	if m.view == ViewSearch {
+		return StyleHeader.Render(
+			fmt.Sprintf("Search: /%s_  (%d hits)", m.searchQuery, len(m.searchHits)),
+		)
+	}
 	if m.view == ViewSaved {
 		return StyleHeader.Render(fmt.Sprintf("Saved · %d items", len(m.saved)))
 	}
@@ -299,6 +416,23 @@ func (m Model) renderHeader() string {
 
 func (m Model) renderList() string {
 	var lines []string
+	if m.view == ViewSearch {
+		if len(m.searchHits) == 0 {
+			if m.searchQuery == "" {
+				return StyleListItem.Render("Type to search cached briefs…")
+			}
+			return StyleListItem.Render("No matches.")
+		}
+		for i, hit := range m.searchHits {
+			label := fmt.Sprintf("%s · %s", hit.BriefDate, truncate(hit.Item.Title, 48))
+			if i == m.cursor {
+				lines = append(lines, StyleListItemActive.Render(label))
+			} else {
+				lines = append(lines, StyleListItem.Render(label))
+			}
+		}
+		return strings.Join(lines, "\n")
+	}
 	if m.view == ViewSaved {
 		for i, it := range m.saved {
 			label := fmt.Sprintf("%s · %s", it.BriefDate, truncate(it.Item.Title, 50))
@@ -369,6 +503,7 @@ func (m Model) renderFooter() string {
 		"w web",
 		"1 today",
 		"2 saved",
+		"/ search",
 		"r refresh",
 		"? help",
 		"q quit",
@@ -388,6 +523,7 @@ func (m Model) renderHelp() string {
 		"  g / G      Top / bottom",
 		"  tab / 2    Saved view",
 		"  1          Today view",
+		"  /          Search cached briefs",
 		"  r          Refresh from server",
 		"",
 		StyleHelp.Render("Actions"),
@@ -404,6 +540,13 @@ func (m Model) renderHelp() string {
 }
 
 func (m Model) activeItem() *api.BriefItem {
+	if m.view == ViewSearch {
+		if m.cursor < 0 || m.cursor >= len(m.searchHits) {
+			return nil
+		}
+		it := m.searchHits[m.cursor].Item
+		return &it
+	}
 	if m.view == ViewSaved {
 		if m.cursor < 0 || m.cursor >= len(m.saved) {
 			return nil
@@ -418,6 +561,12 @@ func (m Model) activeItem() *api.BriefItem {
 }
 
 func (m Model) activeBriefDate() string {
+	if m.view == ViewSearch {
+		if m.cursor >= 0 && m.cursor < len(m.searchHits) {
+			return m.searchHits[m.cursor].BriefDate
+		}
+		return ""
+	}
 	if m.view == ViewSaved {
 		if m.cursor >= 0 && m.cursor < len(m.saved) {
 			return m.saved[m.cursor].BriefDate

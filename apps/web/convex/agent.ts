@@ -42,6 +42,44 @@ function nextWeekdayISO(from = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Spec 7.2 step 2: fetch URL content for each bookmark with a sensible
+ * timeout, skip on failure. Strips HTML to plain text and trims to a budget
+ * before handing off to Claude.
+ */
+async function fetchUrlSnippet(url: string, timeoutMs = 5000): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        // A descriptive UA so sites can rate-limit us properly if they want to.
+        "user-agent": "ThePullBot/1.0 (+https://thepull.dev)",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+      redirect: "follow",
+    });
+    clearTimeout(id);
+    if (!resp.ok) return null;
+    const ct = resp.headers.get("content-type") ?? "";
+    if (!ct.includes("text/") && !ct.includes("json") && !ct.includes("xml")) {
+      return null;
+    }
+    const raw = await resp.text();
+    // Strip script/style + tags; collapse whitespace; cap at 2000 chars.
+    const text = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.slice(0, 2000);
+  } catch {
+    return null;
+  }
+}
+
 async function callClaude(
   apiKey: string,
   bookmarks: BookmarkRow[],
@@ -129,7 +167,21 @@ export const processPending = action({
     let candidates = 0;
     for (const group of groups) {
       try {
-        const draft = await callClaude(apiKey, group);
+        // Spec 7.2 step 2: fetch URL content with a timeout before drafting.
+        // Reuse any rawContent already on the bookmark (e.g. tweet text) and
+        // augment it with the fetched page text.
+        const enriched = await Promise.all(
+          group.map(async (b) => {
+            if (b.rawContent && b.rawContent.length > 400) return b;
+            const fetched = await fetchUrlSnippet(b.url);
+            if (!fetched) return b;
+            return {
+              ...b,
+              rawContent: [b.rawContent, fetched].filter(Boolean).join("\n\n"),
+            };
+          }),
+        );
+        const draft = await callClaude(apiKey, enriched);
         const candidateId = await ctx.runMutation(
           internal.candidates.createDraft,
           {

@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "the-pull-prod",
   "account_id": "3ae801a7425f3c280128875b9cec4c4a",
-  "main": ".open-next/worker.js",
+  "main": "./custom-worker.ts",
   "compatibility_date": "2026-05-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -48,11 +48,20 @@
   //   { "pattern": "www.thepull.dev", "custom_domain": true }
   // ],
   /*
-   * NOTE: Cron Triggers run on the Convex side (see apps/web/convex/crons.ts)
-   * so the Worker has no scheduled() handler. If you ever want certain crons
-   * to run inside the Worker (e.g. to use R2/Email bindings directly), add
-   * them here and add a `scheduled()` export to the Worker entry.
+   * Spec section 5.13: Cloudflare Cron Triggers. The custom worker's
+   * scheduled() handler maps each cron expression to a Convex action.
+   * Convex also has its own internal cron schedule as a redundancy
+   * (see apps/web/convex/crons.ts) so a Worker outage doesn't drop the
+   * daily publish.
    */
+  "triggers": {
+    "crons": [
+      "0 2 * * 1-5",
+      "0 11 * * 1-5",
+      "0 12 * * 1-5",
+      "0 0 * * *"
+    ]
+  },
   "vars": {
     "CMS_EMAIL": "josh@joshferrara.com",
     /*

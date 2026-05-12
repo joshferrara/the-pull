@@ -28,6 +28,7 @@ interface Candidate {
   }>;
   source?: { type: string; url: string; author?: string };
   position?: number;
+  readingTimeSeconds?: number;
 }
 
 interface Props {
@@ -111,6 +112,11 @@ export function CmsBriefEditor(props: Props) {
         />
       </section>
 
+      <ManualItemAdder
+        targetDate={props.targetDate}
+        onAdded={(c) => setCandidates((cs) => [...cs, c])}
+      />
+
       <ul className="space-y-3">
         {candidates.map((c) => (
           <li
@@ -190,22 +196,56 @@ export function CmsBriefEditor(props: Props) {
           candidate={editing}
           onCancel={() => setEditing(null)}
           onSave={(c) => void saveEdits(c)}
+          onSaveAndNext={(c) => {
+            void saveEdits(c);
+            const idx = candidates.findIndex((x) => x.id === c.id);
+            const next =
+              candidates.slice(idx + 1).find((x) => x.decision !== "kill") ??
+              candidates.find((x) => x.decision !== "kill" && x.id !== c.id);
+            setEditing(next ?? null);
+          }}
         />
       )}
     </div>
   );
 }
 
+type LinkType = "primary" | "reference" | "discussion";
+
+function estimateReadingTimeSecs(args: { summary?: string; commentary?: string }): number {
+  const words =
+    (args.summary?.trim().split(/\s+/).length ?? 0) +
+    (args.commentary?.trim().split(/\s+/).length ?? 0);
+  if (words === 0) return 0;
+  return Math.max(15, Math.round((words / 200) * 60));
+}
+
 function CandidateEditor({
   candidate,
   onCancel,
   onSave,
+  onSaveAndNext,
 }: {
   candidate: Candidate;
   onCancel: () => void;
   onSave: (c: Candidate) => void;
+  onSaveAndNext: (c: Candidate) => void;
 }) {
   const [draft, setDraft] = useState(candidate);
+  const [readingOverride, setReadingOverride] = useState<number | null>(
+    null,
+  );
+  // Re-seed when the parent rotates to the next candidate.
+  if (draft.id !== candidate.id) {
+    setDraft(candidate);
+    setReadingOverride(null);
+  }
+  const autoReading = estimateReadingTimeSecs({
+    summary: draft.summary,
+    commentary: draft.commentary,
+  });
+  const reading = readingOverride ?? autoReading;
+  const draftWithReading: Candidate = { ...draft, readingTimeSeconds: reading };
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/60">
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[color:var(--color-mantle)] rounded-t-2xl sm:rounded-2xl p-4 border border-[color:var(--color-surface1)]">
@@ -278,10 +318,71 @@ function CandidateEditor({
             className="w-full px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)]"
           />
         </Field>
+        <Field label="Links">
+          <LinksEditor
+            value={draft.links}
+            onChange={(links) => setDraft({ ...draft, links })}
+          />
+        </Field>
+        <Field label="Reading time (seconds)">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              value={reading}
+              onChange={(e) =>
+                setReadingOverride(Math.max(0, parseInt(e.target.value, 10) || 0))
+              }
+              className="w-32 px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)]"
+            />
+            <span className="text-xs text-[color:var(--color-overlay1)]">
+              auto: {autoReading}s · override applies on save
+            </span>
+            {readingOverride !== null && (
+              <button
+                onClick={() => setReadingOverride(null)}
+                className="text-xs underline text-[color:var(--color-blue)]"
+              >
+                reset
+              </button>
+            )}
+          </div>
+        </Field>
+        {draft.source && (
+          <Field label="Source (read-only)">
+            <div className="px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm text-[color:var(--color-subtext0)]">
+              <div>
+                <span className="text-[color:var(--color-overlay1)]">type:</span>{" "}
+                {draft.source.type}
+                {draft.source.author && (
+                  <>
+                    {" · "}
+                    <span className="text-[color:var(--color-overlay1)]">author:</span>{" "}
+                    {draft.source.author}
+                  </>
+                )}
+              </div>
+              <a
+                href={draft.source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-xs text-[color:var(--color-blue)]"
+              >
+                {draft.source.url}
+              </a>
+            </div>
+          </Field>
+        )}
         <div className="flex gap-2 mt-3">
           <button
-            onClick={() => onSave(draft)}
+            onClick={() => onSaveAndNext(draftWithReading)}
             className="flex-1 py-2 rounded bg-[color:var(--color-mauve)] text-[color:var(--color-crust)] font-medium"
+          >
+            Save &amp; Next
+          </button>
+          <button
+            onClick={() => onSave(draftWithReading)}
+            className="py-2 px-3 rounded bg-[color:var(--color-surface0)] text-sm"
           >
             Save
           </button>
@@ -311,5 +412,200 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+function ManualItemAdder({
+  targetDate,
+  onAdded,
+}: {
+  targetDate: string;
+  onAdded: (c: Candidate) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [url, setUrl] = useState("");
+  const [category, setCategory] = useState<Category>("meta");
+  const [importance, setImportance] = useState<Importance>("medium");
+  const [busy, setBusy] = useState(false);
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const resp = await fetch("/api/cms/candidates/manual-add", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        targetDate,
+        title,
+        summary,
+        category,
+        importance,
+        links: url ? [{ url, label: "Primary", type: "primary" }] : [],
+      }),
+    });
+    setBusy(false);
+    if (!resp.ok) {
+      alert("add failed");
+      return;
+    }
+    const data = (await resp.json()) as { id: string };
+    onAdded({
+      id: data.id,
+      title,
+      summary,
+      category,
+      tags: [],
+      importance,
+      decision: "undecided",
+      links: url ? [{ url, label: "Primary", type: "primary" }] : [],
+    });
+    setTitle("");
+    setSummary("");
+    setUrl("");
+    setOpen(false);
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full px-3 py-2 rounded border border-dashed border-[color:var(--color-surface1)] text-sm text-[color:var(--color-overlay1)] hover:text-[color:var(--color-text)]"
+      >
+        + Add manual item
+      </button>
+    );
+  }
+  return (
+    <form
+      onSubmit={add}
+      className="border border-[color:var(--color-surface1)] rounded p-3 space-y-2"
+    >
+      <input
+        required
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title"
+        className="w-full px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm"
+      />
+      <textarea
+        required
+        value={summary}
+        onChange={(e) => setSummary(e.target.value)}
+        placeholder="Summary"
+        rows={3}
+        className="w-full px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm"
+      />
+      <input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="Primary link URL (optional)"
+        className="w-full px-3 py-2 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm"
+      />
+      <div className="flex gap-2">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as Category)}
+          className="flex-1 px-2 py-1 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm"
+        >
+          {["model", "tool", "protocol", "research", "business", "meta"].map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          value={importance}
+          onChange={(e) => setImportance(e.target.value as Importance)}
+          className="flex-1 px-2 py-1 rounded bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] text-sm"
+        >
+          {["low", "medium", "high"].map((i) => (
+            <option key={i}>{i}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={busy}
+          className="flex-1 py-2 rounded bg-[color:var(--color-mauve)] text-[color:var(--color-crust)] font-medium disabled:opacity-50"
+        >
+          {busy ? "…" : "Add"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="px-3 py-2 rounded bg-[color:var(--color-surface0)] text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+const LINK_TYPES: LinkType[] = ["primary", "reference", "discussion"];
+
+function LinksEditor({
+  value,
+  onChange,
+}: {
+  value: Candidate["links"];
+  onChange: (links: Candidate["links"]) => void;
+}) {
+  const update = (i: number, patch: Partial<Candidate["links"][number]>) => {
+    onChange(value.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  };
+  return (
+    <div className="space-y-2">
+      {value.map((link, i) => (
+        <div
+          key={i}
+          className="flex flex-col sm:flex-row gap-1 sm:gap-2 bg-[color:var(--color-crust)] border border-[color:var(--color-surface1)] rounded p-2 text-sm"
+        >
+          <input
+            value={link.label}
+            onChange={(e) => update(i, { label: e.target.value })}
+            placeholder="Label"
+            className="flex-1 px-2 py-1 rounded bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] text-sm"
+          />
+          <input
+            value={link.url}
+            onChange={(e) => update(i, { url: e.target.value })}
+            placeholder="https://…"
+            className="flex-[2] px-2 py-1 rounded bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] text-sm"
+          />
+          <select
+            value={link.type}
+            onChange={(e) =>
+              update(i, { type: e.target.value as LinkType })
+            }
+            className="px-2 py-1 rounded bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] text-sm"
+          >
+            {LINK_TYPES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+            className="text-xs text-[color:var(--color-red)] px-2"
+            aria-label="Remove link"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() =>
+          onChange([...value, { label: "", url: "", type: "reference" }])
+        }
+        className="text-xs px-2 py-1 rounded bg-[color:var(--color-surface0)]"
+      >
+        + Add link
+      </button>
+    </div>
   );
 }

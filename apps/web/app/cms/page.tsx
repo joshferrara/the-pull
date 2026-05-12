@@ -3,6 +3,7 @@ import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { CmsBriefEditor } from "@/components/cms-brief-editor";
 
+export const dynamic = "force-dynamic";
 
 function nextWeekday(): string {
   const d = new Date();
@@ -43,6 +44,7 @@ export default async function CmsTodayPage({
           links: c.links,
           source: c.source,
           position: c.position,
+          readingTimeSeconds: c.readingTimeSeconds,
         }))}
         editorNote={brief?.editorNote ?? ""}
         edition={brief?.edition}

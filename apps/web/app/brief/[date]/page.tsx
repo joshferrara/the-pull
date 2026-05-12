@@ -19,13 +19,22 @@ export async function generateMetadata({
   const { date } = await params;
   const brief = await getBriefJson(date);
   if (!brief) return { title: "The Pull" };
+  const site = process.env.SITE_URL ?? "https://thepull.dev";
+  const ogImage = `${site}/brief/${brief.date}/og.svg`;
   return {
     title: `The Pull — Edition #${brief.edition} (${brief.date})`,
     description: brief.editor_note,
     openGraph: {
       title: `The Pull — Edition #${brief.edition}`,
       description: brief.editor_note,
-      url: `https://thepull.dev/brief/${brief.date}`,
+      url: `${site}/brief/${brief.date}`,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `The Pull — Edition #${brief.edition}`,
+      description: brief.editor_note,
+      images: [ogImage],
     },
   };
 }
