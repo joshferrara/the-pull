@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   });
   try {
     await emailProvider().send(
-      magicLinkEmail({ email, code, callbackPath: body.next }),
+      await magicLinkEmail({ email, code, callbackPath: body.next }),
     );
   } catch (err) {
     console.error("magic link send failed", err);

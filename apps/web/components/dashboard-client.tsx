@@ -19,6 +19,19 @@ interface Props {
   initialTokens: TokenView[];
 }
 
+const COMMON_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Berlin",
+  "Asia/Tokyo",
+  "Asia/Singapore",
+  "Australia/Sydney",
+];
+
 export function DashboardClient(props: Props) {
   const [tokens, setTokens] = useState(props.initialTokens);
   const [emailEnabled, setEmailEnabled] = useState(
@@ -27,6 +40,7 @@ export function DashboardClient(props: Props) {
   const [analyticsOptOut, setAnalyticsOptOut] = useState(
     props.initialPreferences.analyticsOptOut,
   );
+  const [timezone, setTimezone] = useState(props.initialTimezone);
   const [, startTransition] = useTransition();
 
   async function refresh() {
@@ -60,41 +74,59 @@ export function DashboardClient(props: Props) {
           Tokens
         </h2>
         <CreateTokenForm onCreate={createToken} />
-        <ul className="mt-4 space-y-2">
-          {tokens.map((t) => (
-            <li
-              key={t.id}
-              className={
-                "border border-[color:var(--color-surface1)] rounded p-3 text-sm " +
-                (t.revoked ? "opacity-50" : "")
-              }
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono bg-[color:var(--color-mantle)] px-2 py-0.5 rounded text-xs">
-                    {t.scope}
-                  </span>{" "}
-                  {t.label && <span>{t.label}</span>}
-                </div>
-                {!t.revoked && (
-                  <button
-                    onClick={() => startTransition(() => void revoke(t.id))}
-                    className="text-xs text-[color:var(--color-red)]"
+        {(["api", "rss", "cli"] as const).map((scope) => {
+          const group = tokens.filter((t) => t.scope === scope);
+          if (group.length === 0) return null;
+          return (
+            <div key={scope} className="mt-4">
+              <h3 className="text-xs uppercase tracking-widest text-[color:var(--color-overlay1)] mb-2">
+                {scope}
+              </h3>
+              <ul className="space-y-2">
+                {group.map((t) => (
+                  <li
+                    key={t.id}
+                    className={
+                      "border border-[color:var(--color-surface1)] rounded p-3 text-sm " +
+                      (t.revoked ? "opacity-50" : "")
+                    }
                   >
-                    Revoke
-                  </button>
-                )}
-              </div>
-              <code className="block mt-2 p-2 bg-[color:var(--color-mantle)] rounded text-xs break-all">
-                {t.token}
-              </code>
-              <p className="mt-1 text-xs text-[color:var(--color-overlay1)]">
-                Created {t.created_at} ·{" "}
-                {t.last_used_at ? `last used ${t.last_used_at}` : "never used"}
-              </p>
-            </li>
-          ))}
-        </ul>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {t.label ? (
+                          <span>{t.label}</span>
+                        ) : (
+                          <span className="text-[color:var(--color-overlay1)]">
+                            (no label)
+                          </span>
+                        )}
+                      </div>
+                      {!t.revoked && (
+                        <button
+                          onClick={() =>
+                            startTransition(() => void revoke(t.id))
+                          }
+                          className="text-xs text-[color:var(--color-red)]"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                    <code className="block mt-2 p-2 bg-[color:var(--color-mantle)] rounded text-xs break-all">
+                      {t.token}
+                    </code>
+                    <p className="mt-1 text-xs text-[color:var(--color-overlay1)]">
+                      Created {t.created_at} ·{" "}
+                      {t.last_used_at
+                        ? `last used ${t.last_used_at}`
+                        : "never used"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </section>
 
       <section>
@@ -125,6 +157,30 @@ export function DashboardClient(props: Props) {
             });
           }}
         />
+        <label className="flex items-center justify-between py-2">
+          <span>Timezone</span>
+          <select
+            value={timezone}
+            onChange={async (e) => {
+              const tz = e.target.value;
+              setTimezone(tz);
+              await fetch("/api/v1/me/timezone", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ timezone: tz }),
+              });
+            }}
+            className="px-2 py-1 rounded bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] text-sm"
+          >
+            <option value="">— pick one —</option>
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz}>{tz}</option>
+            ))}
+            {timezone && !COMMON_TIMEZONES.includes(timezone) && (
+              <option value={timezone}>{timezone}</option>
+            )}
+          </select>
+        </label>
       </section>
 
       <section>

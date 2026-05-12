@@ -16,11 +16,11 @@ export async function POST(req: NextRequest) {
     editorNote?: string;
     itemIds?: string[];
     publishNow?: boolean;
+    draftOnly?: boolean;
   };
   if (!body.date || !body.itemIds)
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
-  // Persist positions in the kept order.
   await convexClient().mutation(api.candidates.reorderKept, {
     targetDate: body.date,
     orderedIds: body.itemIds as unknown as never[],
@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
     itemIds: body.itemIds as unknown as never[],
   });
 
+  if (body.draftOnly) {
+    return NextResponse.json({ ok: true, draft: briefId });
+  }
+
   if (body.publishNow) {
     const result = await convexClient().action(api.publish.publishBrief, {
       date: body.date,
@@ -39,7 +43,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, published: result });
   }
 
-  // Schedule for 6 AM ET of the target date.
   const [y, m, d] = body.date.split("-").map(Number);
   const sixAmEt = new Date(Date.UTC(y, m - 1, d, 11, 0, 0));
   await convexClient().mutation(api.briefs.schedule, {

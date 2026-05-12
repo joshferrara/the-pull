@@ -143,27 +143,52 @@ function buildRfc822(args: {
 
 /* ----- Templates ----- */
 
-export function magicLinkEmail(args: {
+export async function magicLinkEmail(args: {
   email: string;
   code: string;
   callbackPath?: string;
-}): EmailPayload {
+}): Promise<EmailPayload> {
   const base = siteUrl();
   const url = `${base}/verify?code=${encodeURIComponent(args.code)}${
     args.callbackPath ? `&next=${encodeURIComponent(args.callbackPath)}` : ""
   }`;
+  // React Email render is dynamic-imported so it's only loaded in the email
+  // send path (the public marketing / API routes shouldn't pay this cost).
+  const [{ render }, { MagicLinkEmail }] = await Promise.all([
+    import("@react-email/components"),
+    import("./email/templates/magic-link"),
+  ]);
+  const html = await render(
+    MagicLinkEmail({ url, code: args.code, expiresInMinutes: 15 }),
+  );
   return {
     to: args.email,
     subject: "Your sign-in link for The Pull",
     text: `Click to sign in: ${url}\n\nCode: ${args.code}\n\nLink expires in 15 minutes.`,
-    html: `<!doctype html><html><body style="font-family:ui-sans-serif,system-ui;max-width:520px;margin:2rem auto;color:#1e1e2e;">
-<h1 style="font-size:1.25rem;">Sign in to The Pull</h1>
-<p>Click below to verify this email.</p>
-<p><a href="${url}" style="display:inline-block;background:#cba6f7;color:#11111b;padding:.75rem 1rem;border-radius:.5rem;text-decoration:none;font-weight:600;">Verify email</a></p>
-<p style="color:#7f849c;font-size:.85rem;">Or copy the code: <strong>${args.code}</strong></p>
-<p style="color:#7f849c;font-size:.85rem;">This link expires in 15 minutes.</p>
-</body></html>`,
+    html,
   };
+}
+
+/**
+ * Render the daily-brief HTML with the React Email template. Used by the
+ * publish pipeline when building per-recipient emails.
+ */
+export async function renderDailyBriefHtml(args: {
+  brief: import("@the-pull/schema").Brief;
+  webUrl: string;
+  unsubscribeUrl: string;
+}): Promise<string> {
+  const [{ render }, { DailyBriefEmail }] = await Promise.all([
+    import("@react-email/components"),
+    import("./email/templates/daily-brief"),
+  ]);
+  return await render(
+    DailyBriefEmail({
+      brief: args.brief,
+      webUrl: args.webUrl,
+      unsubscribeUrl: args.unsubscribeUrl,
+    }),
+  );
 }
 
 export function dailyBriefEmail(args: {

@@ -71,7 +71,7 @@ export function CmsBriefEditor(props: Props) {
     });
   }
 
-  async function saveAndSchedule(opts: { publishNow?: boolean }) {
+  async function saveAndSchedule(opts: { publishNow?: boolean; draftOnly?: boolean }) {
     const resp = await fetch("/api/cms/brief/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -80,12 +80,16 @@ export function CmsBriefEditor(props: Props) {
         editorNote,
         itemIds: kept.map((c) => c.id),
         publishNow: opts.publishNow,
+        draftOnly: opts.draftOnly,
       }),
     });
     if (!resp.ok) alert("save failed");
     else if (opts.publishNow) alert("published");
+    else if (opts.draftOnly) alert("saved as draft");
     else alert("scheduled for 6 AM ET");
   }
+
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -175,10 +179,16 @@ export function CmsBriefEditor(props: Props) {
 
       <div className="fixed inset-x-0 bottom-0 bg-[color:var(--color-mantle)] border-t border-[color:var(--color-surface1)] p-3 flex gap-2">
         <button
+          onClick={() => setPreviewOpen(true)}
+          className="px-3 py-3 rounded bg-[color:var(--color-surface0)] text-sm"
+        >
+          Preview
+        </button>
+        <button
           onClick={() => void saveAndSchedule({ publishNow: false })}
           className="flex-1 py-3 rounded bg-[color:var(--color-mauve)] text-[color:var(--color-crust)] font-semibold"
         >
-          Schedule for 6 AM ET
+          Schedule 6 AM ET
         </button>
         <button
           onClick={() => {
@@ -187,9 +197,24 @@ export function CmsBriefEditor(props: Props) {
           }}
           className="px-3 rounded bg-[color:var(--color-surface0)] text-sm"
         >
-          Publish now
+          Publish
+        </button>
+        <button
+          onClick={() => void saveAndSchedule({ draftOnly: true })}
+          className="px-3 rounded bg-[color:var(--color-surface0)] text-xs text-[color:var(--color-overlay1)]"
+        >
+          Save draft
         </button>
       </div>
+
+      {previewOpen && (
+        <BriefPreview
+          date={props.targetDate}
+          editorNote={editorNote}
+          items={kept}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
 
       {editing && (
         <CandidateEditor
@@ -393,6 +418,85 @@ function CandidateEditor({
             Cancel
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BriefPreview({
+  date,
+  editorNote,
+  items,
+  onClose,
+}: {
+  date: string;
+  editorNote: string;
+  items: Candidate[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 bg-black/70 overflow-y-auto">
+      <div className="max-w-2xl mx-auto bg-[color:var(--color-base)] my-6 rounded-2xl border border-[color:var(--color-surface1)] p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold">Preview</h2>
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded bg-[color:var(--color-surface0)] text-sm"
+          >
+            Close
+          </button>
+        </div>
+        <header className="mb-8">
+          <p className="text-xs uppercase tracking-widest text-[color:var(--color-overlay1)]">
+            The Pull · {date}
+          </p>
+          {editorNote && (
+            <p className="mt-4 text-[color:var(--color-subtext1)] italic border-l-2 border-[color:var(--color-mauve)] pl-3">
+              {editorNote}
+            </p>
+          )}
+        </header>
+        <ol className="space-y-8 brief-prose">
+          {items.map((item, i) => (
+            <li key={item.id}>
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wider mb-2">
+                <span className="text-[color:var(--color-overlay0)] font-mono">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="text-[color:var(--color-subtext0)]">
+                  {item.category}
+                </span>
+                <span className="text-[color:var(--color-overlay1)]">
+                  {item.importance}
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold">{item.title}</h3>
+              {item.summary && <p>{item.summary}</p>}
+              {item.commentary && (
+                <blockquote className="border-l-2 border-[color:var(--color-mauve)] pl-3 italic text-[color:var(--color-subtext0)]">
+                  {item.commentary}
+                </blockquote>
+              )}
+              {item.links && item.links.length > 0 && (
+                <ol className="text-sm text-[color:var(--color-subtext1)] list-decimal ml-5">
+                  {item.links.map((l) => (
+                    <li key={l.url}>
+                      <a href={l.url} className="text-[color:var(--color-blue)] underline">
+                        {l.label}
+                      </a>{" "}
+                      <em className="text-xs text-[color:var(--color-overlay0)]">({l.type})</em>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          ))}
+        </ol>
+        {items.length === 0 && (
+          <p className="text-[color:var(--color-overlay1)] text-sm">
+            No kept items yet. Keep something first.
+          </p>
+        )}
       </div>
     </div>
   );
