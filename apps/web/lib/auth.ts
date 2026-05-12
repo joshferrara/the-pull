@@ -53,10 +53,13 @@ export async function createSession(payload: Omit<SessionPayload, "iat">) {
   const sig = await hmac(secret, data);
   const value = `${data}.${sig}`;
   const cookieStore = await cookies();
+  // SameSite=Lax (not Strict) so the cookie survives top-level GET
+  // redirects back from OAuth providers (X, future ones). Lax still blocks
+  // CSRF on POST/PUT/DELETE and on iframe/embedded requests.
   cookieStore.set(COOKIE_NAME, value, {
     httpOnly: true,
     secure: true,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: COOKIE_MAX_AGE,
     path: "/",
   });
