@@ -39,6 +39,24 @@ What's deployed, what's validated end-to-end, what still needs you, and how to o
 | Cosign signing config                              | Public key in repo; `COSIGN_PRIVATE_KEY` + `COSIGN_PASSWORD` set as Actions secrets               |
 | Health check                                       | `/api/health` returns `{ ok: true, ts: ... }`                                                      |
 | Install script                                     | `/api/install` returns the curl\|sh-safe fallback installer (single `main` invocation at EOF)     |
+| Anthropic agent pipeline                           | Real Claude call on a live URL → category-correct candidate written; verified against Anthropic API |
+| Resend email send                                  | Real send to joshferrara@gmail.com; Resend returned a message id                                  |
+| Cloudflare Cron Triggers                           | 4 schedules registered on the Worker (`0 2,11,12,0`); scheduled() handler dispatches to Convex actions |
+| OG image per brief                                 | `/brief/[date]/og.svg` returns a 1200x630 SVG with edition #, date, editor note                   |
+| React Email templates                              | Per-recipient HTML rendered via `@react-email/components`; ~4360 chars per send                   |
+| Twitter OAuth 2.0 PKCE code path                   | start + callback + disconnect routes wired; one-click reauth in `/cms/settings`. Curator must complete the in-browser authorize step once (see below) |
+
+## Launch-readiness items (per-spec but operational, not code)
+
+Section 9 of the spec describes a launch plan that lives over weeks of
+operation. The supporting code is in place (analytics, archive index,
+subscriber pipeline) and stats are exposed in `/cms/analytics`; the
+actual rollout is up to the curator:
+
+- 9.1 Pre-Launch — land 200 email signups via the landing page email capture
+- 9.2 Soft Launch — daily curation, monitor `/cms/analytics`
+- 9.3 Public CLI Launch — tag `cli-v0.1.0` (done) → Homebrew tap + Scoop bucket auto-populate
+- 9.4 Success metrics — tracked in `briefStats` / `itemStats` via the rollup cron
 
 ## What still needs you (manual one-time setup)
 
@@ -47,13 +65,12 @@ What's deployed, what's validated end-to-end, what still needs you, and how to o
 | Buy `thepull.dev`             | Any registrar (Cloudflare Registrar is cheapest), nameservers → Cloudflare                                  | Spec calls for this exact domain                                   |
 | Add zone to Cloudflare        | Dashboard → Add a site → `thepull.dev`                                                                      | Needed before custom-domain routes / Email Routing                 |
 | Uncomment routes              | `apps/web/wrangler.jsonc`, uncomment the `routes` block, redeploy                                            | Binds `thepull.dev` and `www.thepull.dev` to the Worker            |
-| Email Routing                 | Dashboard → Email → enable for `thepull.dev`; verify DNS records                                            | Required for the `send_email` Worker binding                       |
-| Uncomment `send_email`        | `apps/web/wrangler.jsonc`, uncomment the `send_email` block, redeploy                                        | Worker can call `env.EMAIL.send(...)`                              |
-| Switch off stub provider      | `apps/web/wrangler.jsonc` → `"EMAIL_PROVIDER": "cloudflare"` (or `"resend"` + `RESEND_API_KEY` secret)        | Send real emails                                                   |
+| Email Routing                 | Dashboard → Email → enable for `thepull.dev`; verify DNS records                                            | Required for the `send_email` Worker binding (you're currently on Resend) |
 | Update SITE_URL               | After domain works: change to `https://thepull.dev` in `wrangler.jsonc` vars + `convex env set SITE_URL`     | Public URLs and unsubscribe links use this                         |
-| Anthropic API key             | `console.anthropic.com` → `wrangler secret put ANTHROPIC_API_KEY` AND `convex env set ANTHROPIC_API_KEY`     | Powers bookmark → candidate drafting                               |
-| Twitter/X API                 | Set `TWITTER_BEARER_TOKEN` + `TWITTER_USER_ID` (Worker secret + Convex env)                                  | Powers automatic bookmark sync                                     |
-| Tag a CLI release             | `git tag cli-v0.1.0 && git push --tags`                                                                      | GoReleaser builds + signs binaries, pushes to taps                 |
+| Verify Resend sender domain   | Resend dashboard → Domains → add `thepull.dev`, copy DNS records to Cloudflare                              | Lets you send `hello@thepull.dev` instead of `onboarding@resend.dev` |
+| X (Twitter) authorize         | Sign into `/cms`, go to Settings, click **Connect X**, authorize bookmark.read. Token stored in Convex.    | Required for the nightly bookmark sync (app-only bearer is rejected by /bookmarks) |
+| OAuth 2.0 Client ID / Secret  | If `Connect X` fails: developer.x.com → your app → User authentication → enable OAuth 2.0 → copy Client ID + Secret → `wrangler secret put TWITTER_CLIENT_ID/SECRET` (Convex too). Also add `https://the-pull-prod.joshferrara.workers.dev/api/cms/twitter/callback` as an allowed redirect URL. | OSS GoReleaser monorepo prefix-strip is via the workflow, not config |
+| Rotate exposed credentials    | The API keys you pasted in chat are in your conversation transcript. Rotate them once everything's live.    | Standard hygiene                                                  |
 
 ## Daily operations
 
