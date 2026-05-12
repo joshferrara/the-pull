@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/api"
+	"github.com/joshferrara/the-pull/apps/cli/internal/api"
 )
 
 // Markdown returns a plain markdown rendering of a brief. Mirrors

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/config"
+	"github.com/joshferrara/the-pull/apps/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -13,9 +13,9 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/api"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/cache"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/store"
+	"github.com/joshferrara/the-pull/apps/cli/internal/api"
+	"github.com/joshferrara/the-pull/apps/cli/internal/cache"
+	"github.com/joshferrara/the-pull/apps/cli/internal/store"
 )
 
 type View int

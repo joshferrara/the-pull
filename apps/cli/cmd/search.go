@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/cache"
+	"github.com/joshferrara/the-pull/apps/cli/internal/cache"
 	"github.com/spf13/cobra"
 )
 

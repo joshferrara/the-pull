@@ -28,7 +28,7 @@ What's deployed, what still needs you, and how to operate the system.
 | Anthropic API key          | Generate at console.anthropic.com → `wrangler secret put ANTHROPIC_API_KEY` AND `pnpm exec convex env set ANTHROPIC_API_KEY <value>` | Powers bookmark → candidate drafting                                                 |
 | Twitter/X API              | Apply for an X developer account → `wrangler secret put TWITTER_BEARER_TOKEN` + `TWITTER_USER_ID` (same on Convex)                    | Powers automatic bookmark sync; spec calls this out as a risk (10.1)                 |
 | Cosign key for releases    | `cosign generate-key-pair` → add `COSIGN_PRIVATE_KEY` + `COSIGN_PASSWORD` to GitHub secrets                                            | GoReleaser signs CLI artifacts                                                       |
-| Homebrew/Scoop bucket repos| Create `josh-ferrara/homebrew-tap` + `josh-ferrara/scoop-bucket`, add a PAT with `repo` scope to GitHub secrets                       | GoReleaser pushes formula/manifest updates                                           |
+| Homebrew/Scoop bucket repos| Create `joshferrara/homebrew-the-pull` + `joshferrara/scoop-the-pull`, add a PAT with `repo` scope to GitHub secrets                       | GoReleaser pushes formula/manifest updates                                           |
 | `CMS_EMAIL` value          | Confirm the email in `wrangler.jsonc` matches the curator's actual address (currently `josh@joshferrara.com`)                         | CMS magic link login only accepts this address                                       |
 
 ## Daily operations

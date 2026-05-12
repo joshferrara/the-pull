@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/config"
+	"github.com/joshferrara/the-pull/apps/cli/internal/config"
 	"github.com/zalando/go-keyring"
 )
 

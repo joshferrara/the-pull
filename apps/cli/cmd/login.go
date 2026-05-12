@@ -13,9 +13,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/api"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/auth"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/config"
+	"github.com/joshferrara/the-pull/apps/cli/internal/api"
+	"github.com/joshferrara/the-pull/apps/cli/internal/auth"
+	"github.com/joshferrara/the-pull/apps/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -13,9 +13,9 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
-      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.versionStr={{ .Version }}
-      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.commitStr={{ .Commit }}
-      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.dateStr={{ .Date }}
+      - -X github.com/joshferrara/the-pull/apps/cli/cmd.versionStr={{ .Version }}
+      - -X github.com/joshferrara/the-pull/apps/cli/cmd.commitStr={{ .Commit }}
+      - -X github.com/joshferrara/the-pull/apps/cli/cmd.dateStr={{ .Date }}
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
     ignore:
@@ -50,15 +50,15 @@ signs:
 
 release:
   github:
-    owner: josh-ferrara
+    owner: joshferrara
     name: the-pull
   prerelease: auto
   draft: false
 
 brews:
   - repository:
-      owner: josh-ferrara
-      name: homebrew-tap
+      owner: joshferrara
+      name: homebrew-the-pull
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://thepull.dev"
     description: "The Pull — daily AI brief for developers"
@@ -70,8 +70,8 @@ brews:
 
 scoops:
   - repository:
-      owner: josh-ferrara
-      name: scoop-bucket
+      owner: joshferrara
+      name: scoop-the-pull
       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
     homepage: "https://thepull.dev"
     description: "The Pull — daily AI brief for developers"

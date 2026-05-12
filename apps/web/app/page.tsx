@@ -131,7 +131,7 @@ export default async function LandingPage() {
       <footer className="max-w-3xl mx-auto px-6 py-12 border-t border-[color:var(--color-surface1)] text-sm text-[color:var(--color-overlay1)] flex flex-wrap gap-x-6 gap-y-3">
         <Link href="/archive">Archive</Link>
         <Link href="/brief/latest">Today&apos;s brief</Link>
-        <a href="https://github.com/josh-ferrara/the-pull">GitHub</a>
+        <a href="https://github.com/joshferrara/the-pull">GitHub</a>
         <span className="ml-auto">by Josh Ferrara</span>
       </footer>
     </main>

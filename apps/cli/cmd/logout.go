@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/auth"
+	"github.com/joshferrara/the-pull/apps/cli/internal/auth"
 	"github.com/spf13/cobra"
 )
 

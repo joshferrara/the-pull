@@ -9,7 +9,7 @@ const FALLBACK_INSTALLER = `#!/usr/bin/env bash
 
 set -euo pipefail
 
-GH_OWNER="josh-ferrara"
+GH_OWNER="joshferrara"
 GH_REPO="the-pull"
 BIN_NAME="pull"
 INSTALL_DIR="\${INSTALL_DIR:-\$HOME/.local/bin}"

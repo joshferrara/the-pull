@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/cmd"
+	"github.com/joshferrara/the-pull/apps/cli/cmd"
 )
 
 // Set via -ldflags at release time by GoReleaser.

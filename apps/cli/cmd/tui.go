@@ -5,11 +5,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/api"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/auth"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/config"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/store"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/tui"
+	"github.com/joshferrara/the-pull/apps/cli/internal/api"
+	"github.com/joshferrara/the-pull/apps/cli/internal/auth"
+	"github.com/joshferrara/the-pull/apps/cli/internal/config"
+	"github.com/joshferrara/the-pull/apps/cli/internal/store"
+	"github.com/joshferrara/the-pull/apps/cli/internal/tui"
 )
 
 func newTUICmd() *cobra.Command {

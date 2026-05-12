@@ -1,4 +1,4 @@
-module github.com/josh-ferrara/the-pull/apps/cli
+module github.com/joshferrara/the-pull/apps/cli
 
 go 1.24
 

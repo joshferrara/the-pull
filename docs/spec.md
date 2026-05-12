@@ -168,7 +168,7 @@ the-pull/
 └── README.md
 ```
 
-Note: The `tap/` and `scoop/` directories are conceptually part of the project but in practice live in separate repos (`josh-ferrara/homebrew-tap` and `josh-ferrara/scoop-bucket`) because Homebrew and Scoop expect dedicated repositories. GoReleaser pushes to them automatically.
+Note: The `tap/` and `scoop/` directories are conceptually part of the project but in practice live in separate repos (`joshferrara/homebrew-the-pull` and `joshferrara/scoop-the-pull`) because Homebrew and Scoop expect dedicated repositories. GoReleaser pushes to them automatically.
 
 ### 2.3 Data Flow
 
@@ -765,8 +765,8 @@ Configured in `wrangler.jsonc`:
 
 - Binary: `pull`
 - Distributed via:
-  - Homebrew: `brew install joshferrara/tap/pull`
-  - Scoop: `scoop bucket add josh https://github.com/josh-ferrara/scoop-bucket && scoop install pull`
+  - Homebrew: `brew install joshferrara/the-pull/pull`
+  - Scoop: `scoop bucket add josh https://github.com/joshferrara/scoop-the-pull && scoop install pull`
   - Direct: `curl -fsSL https://thepull.dev/install | sh`
 
 **Pre-launch check:** verify `pull` is not a common system binary. If a collision exists on common dev machines, fall back to `the-pull` as the binary name and update all documentation.
@@ -909,8 +909,8 @@ On every git tag matching `cli-v*`:
 2. Generate SHA256 checksums
 3. Sign with cosign
 4. Create GitHub Release with all artifacts
-5. Auto-update `josh-ferrara/homebrew-tap` formula
-6. Auto-update `josh-ferrara/scoop-bucket` manifest
+5. Auto-update `joshferrara/homebrew-the-pull` formula
+6. Auto-update `joshferrara/scoop-the-pull` manifest
 7. Regenerate `install.sh` and upload to R2 at `install/latest.sh`
 
 **Install script** (served at `https://thepull.dev/install`):

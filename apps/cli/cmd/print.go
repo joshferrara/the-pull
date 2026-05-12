@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/api"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/auth"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/cache"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/config"
-	"github.com/josh-ferrara/the-pull/apps/cli/internal/render"
+	"github.com/joshferrara/the-pull/apps/cli/internal/api"
+	"github.com/joshferrara/the-pull/apps/cli/internal/auth"
+	"github.com/joshferrara/the-pull/apps/cli/internal/cache"
+	"github.com/joshferrara/the-pull/apps/cli/internal/config"
+	"github.com/joshferrara/the-pull/apps/cli/internal/render"
 	"github.com/spf13/cobra"
 )
 
