@@ -5,8 +5,10 @@ import { useState } from "react";
 interface Bookmark {
   id: string;
   url: string;
+  sourceUrl?: string;
   sourceType: "twitter" | "manual" | "rss" | "share_sheet";
   sourceAuthor?: string;
+  rawContent?: string;
   capturedAt: string;
 }
 
@@ -16,6 +18,7 @@ export function BookmarksClient({ pending }: { pending: Bookmark[] }) {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   async function syncTwitter() {
     setBusy("sync");
@@ -45,7 +48,9 @@ export function BookmarksClient({ pending }: { pending: Bookmark[] }) {
         processed: number;
         candidates: number;
       };
-      alert(`Processed ${data.processed} bookmarks → ${data.candidates} candidates`);
+      alert(
+        `Processed ${data.processed} bookmarks → ${data.candidates} candidates`,
+      );
       location.reload();
     } else alert("Process failed");
   }
@@ -64,8 +69,26 @@ export function BookmarksClient({ pending }: { pending: Bookmark[] }) {
     location.reload();
   }
 
+  async function ignore(id: string) {
+    await fetch("/api/cms/bookmarks/ignore", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bookmarkId: id }),
+    });
+    location.reload();
+  }
+
   function toggle(id: string) {
     setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -123,35 +146,17 @@ export function BookmarksClient({ pending }: { pending: Bookmark[] }) {
         </button>
       </form>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {items.map((b) => (
-          <li
+          <BookmarkRow
             key={b.id}
-            className="border border-[color:var(--color-surface1)] rounded p-3 text-sm"
-          >
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selected.has(b.id)}
-                onChange={() => toggle(b.id)}
-                className="mt-1"
-              />
-              <div className="flex-1 min-w-0">
-                <a
-                  href={b.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="break-all"
-                >
-                  {b.url}
-                </a>
-                <p className="text-xs text-[color:var(--color-overlay1)] mt-1">
-                  {b.sourceType}
-                  {b.sourceAuthor ? ` · ${b.sourceAuthor}` : ""} · {b.capturedAt}
-                </p>
-              </div>
-            </label>
-          </li>
+            b={b}
+            selected={selected.has(b.id)}
+            expanded={expanded.has(b.id)}
+            onToggle={() => toggle(b.id)}
+            onExpand={() => toggleExpand(b.id)}
+            onIgnore={() => void ignore(b.id)}
+          />
         ))}
         {items.length === 0 && (
           <li className="text-[color:var(--color-overlay1)] text-sm">
@@ -161,4 +166,152 @@ export function BookmarksClient({ pending }: { pending: Bookmark[] }) {
       </ul>
     </div>
   );
+}
+
+function BookmarkRow({
+  b,
+  selected,
+  expanded,
+  onToggle,
+  onExpand,
+  onIgnore,
+}: {
+  b: Bookmark;
+  selected: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onExpand: () => void;
+  onIgnore: () => void;
+}) {
+  const isTwitter = b.sourceType === "twitter";
+  const tweetUrl = isTwitter ? (b.sourceUrl ?? b.url) : null;
+  const primaryDestination =
+    b.url && b.url !== tweetUrl ? b.url : null; // external link if present
+  const captured = new Date(b.capturedAt).toLocaleString();
+  const summaryText = trimForSummary(b.rawContent ?? "");
+  const urlsInTweet = extractUrls(b.rawContent ?? "").filter(
+    (u) => !u.startsWith("https://t.co/") && u !== tweetUrl,
+  );
+
+  return (
+    <li className="border border-[color:var(--color-surface1)] rounded p-3 text-sm">
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          className="mt-1"
+          aria-label="Select bookmark"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="text-[color:var(--color-text)] font-medium">
+              {b.sourceAuthor ?? (isTwitter ? "(no author)" : "Manual")}
+            </span>
+            <span className="text-xs text-[color:var(--color-overlay1)] capitalize">
+              {b.sourceType}
+            </span>
+            <span className="text-xs text-[color:var(--color-overlay1)]">
+              · {captured}
+            </span>
+          </div>
+
+          {summaryText && (
+            <p
+              className={
+                "mt-2 text-[color:var(--color-subtext1)] whitespace-pre-wrap " +
+                (expanded ? "" : "line-clamp-3")
+              }
+            >
+              {summaryText}
+            </p>
+          )}
+
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {tweetUrl && (
+              <a
+                href={tweetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[color:var(--color-blue)] underline"
+              >
+                Open on X ↗
+              </a>
+            )}
+            {primaryDestination && (
+              <a
+                href={primaryDestination}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[color:var(--color-blue)] underline break-all"
+                title={primaryDestination}
+              >
+                Primary link → {hostnameOf(primaryDestination)}
+              </a>
+            )}
+            {urlsInTweet.length > 0 && (
+              <span className="text-[color:var(--color-overlay1)]">
+                {urlsInTweet.length} link
+                {urlsInTweet.length === 1 ? "" : "s"} in tweet
+              </span>
+            )}
+            <button
+              onClick={onExpand}
+              className="text-[color:var(--color-overlay1)] underline"
+            >
+              {expanded ? "Collapse" : "Show full content"}
+            </button>
+            <button
+              onClick={onIgnore}
+              className="ml-auto text-[color:var(--color-red)] underline"
+            >
+              Ignore
+            </button>
+          </div>
+
+          {expanded && urlsInTweet.length > 0 && (
+            <ul className="mt-3 text-xs text-[color:var(--color-subtext0)] space-y-1">
+              <li className="text-[color:var(--color-overlay1)] uppercase tracking-widest">
+                URLs in tweet
+              </li>
+              {urlsInTweet.map((u) => (
+                <li key={u}>
+                  <a
+                    href={u}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[color:var(--color-blue)] underline break-all"
+                  >
+                    {u}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function trimForSummary(s: string): string {
+  // Drop the trailing "URLs in tweet: ..." footer the sync appends — it's noise here.
+  return s.replace(/\n*URLs in tweet:[^\n]*$/i, "").trim();
+}
+
+function extractUrls(s: string): string[] {
+  const re = /https?:\/\/[^\s)\]]+/g;
+  const out = new Set<string>();
+  for (const m of s.matchAll(re)) {
+    out.add(m[0].replace(/[.,;]+$/, ""));
+  }
+  return [...out];
+}
+
+function hostnameOf(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return u;
+  }
 }

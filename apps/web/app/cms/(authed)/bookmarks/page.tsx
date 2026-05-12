@@ -17,8 +17,10 @@ export default async function CmsBookmarksPage() {
         pending={pending.map((b) => ({
           id: b._id,
           url: b.url,
+          sourceUrl: b.sourceUrl,
           sourceType: b.sourceType,
           sourceAuthor: b.sourceAuthor,
+          rawContent: b.rawContent,
           capturedAt: new Date(b.capturedAt).toISOString(),
         }))}
       />
