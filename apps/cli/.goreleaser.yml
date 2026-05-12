@@ -1,0 +1,87 @@
+version: 2
+project_name: pull
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: pull
+    main: ./
+    binary: pull
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.versionStr={{ .Version }}
+      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.commitStr={{ .Commit }}
+      - -X github.com/josh-ferrara/the-pull/apps/cli/cmd.dateStr={{ .Date }}
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+signs:
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
+    artifacts: checksum
+    output: true
+    args:
+      - sign-blob
+      - "--key=env://COSIGN_PRIVATE_KEY"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+
+release:
+  github:
+    owner: josh-ferrara
+    name: the-pull
+  prerelease: auto
+  draft: false
+
+brews:
+  - repository:
+      owner: josh-ferrara
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://thepull.dev"
+    description: "The Pull — daily AI brief for developers"
+    license: "MIT"
+    test: |
+      system "#{bin}/pull", "version"
+    install: |
+      bin.install "pull"
+
+scoops:
+  - repository:
+      owner: josh-ferrara
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    homepage: "https://thepull.dev"
+    description: "The Pull — daily AI brief for developers"
+    license: "MIT"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"

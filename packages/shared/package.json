@@ -1,0 +1,22 @@
+{
+  "name": "@the-pull/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./markdown/index.ts",
+  "exports": {
+    "./markdown": {
+      "types": "./markdown/index.ts",
+      "default": "./markdown/index.ts"
+    }
+  },
+  "dependencies": {
+    "@the-pull/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

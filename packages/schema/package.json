@@ -1,0 +1,25 @@
+{
+  "name": "@the-pull/schema",
+  "version": "1.0.0",
+  "description": "JSON Schema and TypeScript types for The Pull's public API",
+  "private": true,
+  "main": "./types.ts",
+  "types": "./types.ts",
+  "exports": {
+    ".": {
+      "types": "./types.ts",
+      "default": "./types.ts"
+    },
+    "./v1.json": "./v1.json"
+  },
+  "files": [
+    "types.ts",
+    "v1.json"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

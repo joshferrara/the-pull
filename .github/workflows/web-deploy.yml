@@ -1,0 +1,54 @@
+name: Deploy Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - ".github/workflows/web-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Convex deploy
+        run: pnpm --filter @the-pull/web exec convex deploy --yes
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      - name: OpenNext build
+        run: pnpm --filter @the-pull/web exec opennextjs-cloudflare build
+        env:
+          CONVEX_URL: ${{ secrets.CONVEX_URL }}
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/web
+          command: deploy --config wrangler.jsonc
+      - name: Smoke test
+        run: |
+          for i in {1..5}; do
+            if curl -fsS https://thepull.dev/api/health; then
+              echo "OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Smoke test failed" >&2
+          exit 1

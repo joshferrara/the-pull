@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thepull.dev/schema/v1.json",
+  "title": "The Pull — Daily Brief (v1)",
+  "description": "JSON shape returned by /api/v1/today.json, /api/v1/briefs/{date}.json, and /api/v1/latest.json",
+  "type": "object",
+  "required": ["version", "date", "edition", "published_at"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "Schema version. Major version 1. Optional fields may be added at minor version bumps."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "YYYY-MM-DD of this edition (publish date in ET)."
+    },
+    "edition": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic edition counter."
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 publish timestamp (UTC)."
+    },
+    "preview": {
+      "type": "boolean",
+      "description": "Present and true when the response is the unauthenticated preview shape. When true, editor_note, summary/commentary/links/source on items are omitted."
+    },
+    "editor_note": {
+      "type": "string",
+      "description": "Short note from the curator framing the day's narrative."
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Item" }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "item_count": { "type": "integer", "minimum": 0 },
+        "total_reading_time_seconds": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["item_count"]
+    }
+  },
+  "$defs": {
+    "Item": {
+      "type": "object",
+      "required": ["id", "title", "category", "importance"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$",
+          "description": "Permanent globally-unique id (YYYY-MM-DD-NN)."
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "summary": {
+          "type": "string",
+          "description": "Objective, neutral summary. Omitted in preview."
+        },
+        "commentary": {
+          "type": "string",
+          "description": "Curator's voice — why it matters. Omitted in preview."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["model", "tool", "protocol", "research", "business", "meta"]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+        },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Link" },
+          "description": "Omitted in preview."
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "Omitted in preview."
+        },
+        "importance": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "reading_time_seconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "required": ["url", "label", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "label": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["primary", "reference", "discussion"]
+        }
+      }
+    },
+    "Source": {
+      "type": "object",
+      "required": ["type", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "author": { "type": "string" }
+      }
+    }
+  }
+}

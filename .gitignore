@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build artifacts
+.next/
+.open-next/
+.turbo/
+dist/
+build/
+out/
+
+# go
+apps/cli/bin/
+*.exe
+*.test
+*.out
+
+# env
+.env
+.env.local
+.env.*.local
+.dev.vars
+.dev.vars.local
+.wrangler/
+
+# convex
+convex/_generated/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json.example
+*.swp
+
+# coverage
+coverage/
+*.lcov
+
+# typescript
+*.tsbuildinfo
+
+# goreleaser dist
+apps/cli/dist/
+
+# Claude Code session state
+.claude/

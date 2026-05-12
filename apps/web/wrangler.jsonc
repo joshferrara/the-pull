@@ -1,0 +1,67 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "the-pull-prod",
+  "account_id": "3ae801a7425f3c280128875b9cec4c4a",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "the-pull-prod"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  /*
+   * R2 buckets must be enabled in the Cloudflare dashboard first
+   * (Dashboard → R2 → Enable). Then `wrangler r2 bucket create the-pull-briefs`
+   * and `wrangler r2 bucket create the-pull-next-cache` will succeed and you can
+   * uncomment the binding below.
+   */
+  // "r2_buckets": [
+  //   { "binding": "BRIEFS_BUCKET", "bucket_name": "the-pull-briefs" },
+  //   { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "the-pull-next-cache" }
+  // ],
+  "kv_namespaces": [
+    {
+      "binding": "TOKENS_KV",
+      "id": "e93cc437d4b24edd832d3801b8c4e82d"
+    },
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "64190c2878e84a918f23146015c55d23"
+    }
+  ],
+  /*
+   * Cloudflare Email Service binding. Requires Email Routing to be enabled on
+   * the thepull.dev zone first (Dashboard → Email → Email Routing).
+   */
+  // "send_email": [
+  //   { "name": "EMAIL", "destination_address": "deliveries@thepull.dev" }
+  // ],
+  /*
+   * Custom routes. Add thepull.dev as a zone in this Cloudflare account first,
+   * then uncomment.
+   */
+  // "routes": [
+  //   { "pattern": "thepull.dev", "custom_domain": true },
+  //   { "pattern": "www.thepull.dev", "custom_domain": true }
+  // ],
+  /*
+   * NOTE: Cron Triggers run on the Convex side (see apps/web/convex/crons.ts)
+   * so the Worker has no scheduled() handler. If you ever want certain crons
+   * to run inside the Worker (e.g. to use R2/Email bindings directly), add
+   * them here and add a `scheduled()` export to the Worker entry.
+   */
+  "vars": {
+    "CMS_EMAIL": "josh@joshferrara.com",
+    "EMAIL_PROVIDER": "cloudflare",
+    "SITE_URL": "https://thepull.dev"
+  }
+}
