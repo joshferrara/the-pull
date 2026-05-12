@@ -45,6 +45,10 @@ What's deployed, what's validated end-to-end, what still needs you, and how to o
 | OG image per brief                                 | `/brief/[date]/og.svg` returns a 1200x630 SVG with edition #, date, editor note                   |
 | React Email templates                              | Per-recipient HTML rendered via `@react-email/components`; ~4360 chars per send                   |
 | Twitter OAuth 2.0 PKCE code path                   | start + callback + disconnect routes wired; one-click reauth in `/cms/settings`. Curator must complete the in-browser authorize step once (see below) |
+| Nightly cron (`crons_actions:nightlyPipeline`)     | Seeded 2 bookmarks → real Claude calls → 2 fresh candidates drafted for the next weekday          |
+| Daily rollup cron                                  | `stats:rollupForDate` writes a `briefStats` row matching ingested events                          |
+| Weekly report cron                                 | Real email digest delivered to `joshferrara@gmail.com` via Resend                                 |
+| CLI release (`cli-v0.1.0`)                         | Full GoReleaser pipeline succeeded: GH release with 5 archives, checksums, cosign sig; Homebrew cask + Scoop manifest pushed to tap repos. Downloaded `pull_darwin_arm64.tar.gz`, verified cosign sig, confirmed binary reports `pull 0.1.0 (commit 0fc00516…)`. |
 
 ## Launch-readiness items (per-spec but operational, not code)
 
@@ -62,8 +66,9 @@ actual rollout is up to the curator:
 
 | Step                          | How                                                                                                        | Why                                                                |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Buy `thepull.dev`             | Any registrar (Cloudflare Registrar is cheapest), nameservers → Cloudflare                                  | Spec calls for this exact domain                                   |
-| Add zone to Cloudflare        | Dashboard → Add a site → `thepull.dev`                                                                      | Needed before custom-domain routes / Email Routing                 |
+| Make `joshferrara/the-pull` public | `gh repo edit joshferrara/the-pull --visibility public --accept-visibility-change-consequences`            | The Homebrew cask + install script point at GH release assets; private repo means public install paths 404 |
+| Choose a domain               | `thepull.dev` is **already registered** (active since 2014). Pick an alternate or negotiate. Then update `SITE_URL` + `wrangler.jsonc` routes + Resend domain. | Spec assumed thepull.dev was available |
+| Add zone to Cloudflare        | Dashboard → Add a site → `<your-domain>`                                                                    | Needed before custom-domain routes / Email Routing                 |
 | Uncomment routes              | `apps/web/wrangler.jsonc`, uncomment the `routes` block, redeploy                                            | Binds `thepull.dev` and `www.thepull.dev` to the Worker            |
 | Email Routing                 | Dashboard → Email → enable for `thepull.dev`; verify DNS records                                            | Required for the `send_email` Worker binding (you're currently on Resend) |
 | Update SITE_URL               | After domain works: change to `https://thepull.dev` in `wrangler.jsonc` vars + `convex env set SITE_URL`     | Public URLs and unsubscribe links use this                         |
