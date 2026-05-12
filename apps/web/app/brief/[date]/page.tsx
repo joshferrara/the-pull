@@ -5,6 +5,8 @@ import { verifyWebToken } from "@/lib/auth";
 import { isPreview, toPreview } from "@the-pull/schema";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 
 interface PageProps {
   params: Promise<{ date: string }>;

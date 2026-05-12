@@ -18,16 +18,10 @@
   "observability": {
     "enabled": true
   },
-  /*
-   * R2 buckets must be enabled in the Cloudflare dashboard first
-   * (Dashboard → R2 → Enable). Then `wrangler r2 bucket create the-pull-briefs`
-   * and `wrangler r2 bucket create the-pull-next-cache` will succeed and you can
-   * uncomment the binding below.
-   */
-  // "r2_buckets": [
-  //   { "binding": "BRIEFS_BUCKET", "bucket_name": "the-pull-briefs" },
-  //   { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "the-pull-next-cache" }
-  // ],
+  "r2_buckets": [
+    { "binding": "BRIEFS_BUCKET", "bucket_name": "the-pull-briefs" },
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "the-pull-next-cache" }
+  ],
   "kv_namespaces": [
     {
       "binding": "TOKENS_KV",

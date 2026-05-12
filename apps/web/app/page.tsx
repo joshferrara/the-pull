@@ -5,6 +5,7 @@ import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { getBriefJson } from "@/lib/r2";
 
+export const dynamic = "force-dynamic";
 
 async function getLatestPreview() {
   const latest = await convexClient().query(api.briefs.getLatestPublished);

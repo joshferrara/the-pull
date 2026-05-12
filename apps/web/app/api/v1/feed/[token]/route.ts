@@ -9,7 +9,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
-  const { token } = await params;
+  const { token: rawToken } = await params;
+  // Accept either "TOKEN" or "TOKEN.xml" per spec route /api/v1/feed/[token].xml
+  const token = rawToken.replace(/\.xml$/i, "");
   const auth = await authenticateToken(token);
   if (!auth || auth.token.scope === "cli") {
     return new Response("Unauthorized", { status: 401 });

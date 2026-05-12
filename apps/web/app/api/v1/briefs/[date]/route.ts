@@ -8,7 +8,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ date: string }> },
 ) {
-  const { date } = await params;
+  const { date: rawDate } = await params;
+  // Accept "YYYY-MM-DD" or "YYYY-MM-DD.json" per spec route `/api/v1/briefs/[date].json`.
+  const date = rawDate.replace(/\.json$/i, "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: "invalid_date" }, { status: 400 });
   }
