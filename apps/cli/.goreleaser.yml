@@ -13,9 +13,9 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
-      - -X github.com/joshferrara/the-pull/apps/cli/cmd.versionStr={{ .Version }}
-      - -X github.com/joshferrara/the-pull/apps/cli/cmd.commitStr={{ .Commit }}
-      - -X github.com/joshferrara/the-pull/apps/cli/cmd.dateStr={{ .Date }}
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
     ignore:
@@ -23,11 +23,11 @@ builds:
         goarch: arm64
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - LICENSE*
       - README*
@@ -55,7 +55,7 @@ release:
   prerelease: auto
   draft: false
 
-brews:
+homebrew_casks:
   - repository:
       owner: joshferrara
       name: homebrew-the-pull
@@ -63,10 +63,8 @@ brews:
     homepage: "https://thepull.dev"
     description: "The Pull — daily AI brief for developers"
     license: "MIT"
-    test: |
-      system "#{bin}/pull", "version"
-    install: |
-      bin.install "pull"
+    binaries:
+      - "pull"
 
 scoops:
   - repository:

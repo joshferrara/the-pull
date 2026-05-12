@@ -58,11 +58,44 @@ class ResendEmailProvider implements EmailProvider {
   }
 }
 
+/**
+ * In-memory `stub` provider: captures every send into Workers KV
+ * (`stub:<uuid>` keys) so an internal debug endpoint can read them back. Used
+ * for end-to-end validation of the publish→email pipeline before the real
+ * Cloudflare Email Service / Resend providers have credentials.
+ */
+class StubEmailProvider implements EmailProvider {
+  async send(args: EmailPayload): Promise<{ id: string }> {
+    const env = bindings();
+    const id = crypto.randomUUID();
+    const record = {
+      id,
+      to: args.to,
+      subject: args.subject,
+      text: args.text.slice(0, 2000),
+      html_chars: args.html.length,
+      headers: args.headers ?? {},
+      captured_at: new Date().toISOString(),
+    };
+    // Reuse TOKENS_KV with a "stub_email:" namespace prefix to avoid adding
+    // another binding just for this debug path. 24-hour TTL.
+    await env.TOKENS_KV.put(`stub_email:${id}`, JSON.stringify(record), {
+      expirationTtl: 24 * 60 * 60,
+    });
+    return { id };
+  }
+}
+
 export function emailProvider(): EmailProvider {
   const choice = (process.env.EMAIL_PROVIDER ?? "cloudflare").toLowerCase();
-  return choice === "resend"
-    ? new ResendEmailProvider()
-    : new CloudflareEmailProvider();
+  switch (choice) {
+    case "resend":
+      return new ResendEmailProvider();
+    case "stub":
+      return new StubEmailProvider();
+    default:
+      return new CloudflareEmailProvider();
+  }
 }
 
 function buildRfc822(args: {

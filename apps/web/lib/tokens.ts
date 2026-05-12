@@ -31,10 +31,6 @@ export async function authenticateToken(
   await env.TOKENS_KV.put(kvKey, JSON.stringify(result), {
     expirationTtl: 300,
   });
-  // Fire-and-forget last-used update.
-  void convexClient()
-    .mutation(api.tokens.touch, { tokenId: result.token._id })
-    .catch(() => {});
   return result;
 }
 

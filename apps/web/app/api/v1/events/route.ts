@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { authenticateBearer, sessionHash } from "@/lib/tokens";
 import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
@@ -70,9 +71,15 @@ export async function POST(req: NextRequest) {
       timestamp: Date.now(),
     }));
   if (events.length === 0) return new Response(null, { status: 204 });
-  // Fire-and-forget: don't make the client wait.
-  void convexClient()
-    .mutation(api.events.insertBatch, { events })
-    .catch((err) => console.error("event insert failed", err));
+  // Don't make the client wait, but keep the Worker alive long enough to
+  // actually deliver the mutation. `after()` is the Workers-safe equivalent
+  // of `ctx.waitUntil(promise)` in this Next.js route.
+  after(async () => {
+    try {
+      await convexClient().mutation(api.events.insertBatch, { events });
+    } catch (err) {
+      console.error("event insert failed", err);
+    }
+  });
   return new Response(null, { status: 204 });
 }

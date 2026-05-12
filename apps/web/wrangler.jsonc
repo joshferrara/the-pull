@@ -55,7 +55,17 @@
    */
   "vars": {
     "CMS_EMAIL": "josh@joshferrara.com",
-    "EMAIL_PROVIDER": "cloudflare",
-    "SITE_URL": "https://thepull.dev"
+    /*
+     * Email providers:
+     *   "cloudflare" — requires Email Routing enabled on the zone + send_email binding (default once domain is set up)
+     *   "resend"     — requires RESEND_API_KEY secret
+     *   "stub"       — captures sends into KV for the /api/internal/stub-emails debug endpoint (used pre-launch)
+     */
+    "EMAIL_PROVIDER": "stub",
+    /*
+     * SITE_URL: points to the active public URL. Change to https://thepull.dev
+     * once the custom domain is wired (uncomment the routes block above).
+     */
+    "SITE_URL": "https://the-pull-prod.joshferrara.workers.dev"
   }
 }
