@@ -63,7 +63,7 @@
     ]
   },
   "vars": {
-    "CMS_EMAIL": "josh@joshferrara.com",
+    "CMS_EMAIL": "joshferrara@gmail.com",
     /*
      * Email providers:
      *   "cloudflare" — requires Email Routing enabled on the zone + send_email binding (default once domain is set up)
