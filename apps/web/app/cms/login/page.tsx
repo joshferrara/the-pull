@@ -1,5 +1,7 @@
 import { CmsLoginForm } from "@/components/cms-login-form";
 
+export const dynamic = "force-dynamic";
+
 
 export default function CmsLoginPage() {
   return (

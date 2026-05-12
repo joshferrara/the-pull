@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { readSession, isCmsEmail } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
 
 export default async function CmsLayout({
   children,

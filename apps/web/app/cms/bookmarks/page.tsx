@@ -2,6 +2,8 @@ import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { BookmarksClient } from "@/components/bookmarks-client";
 
+export const dynamic = "force-dynamic";
+
 
 export default async function CmsBookmarksPage() {
   const pending = await convexClient().query(api.bookmarks.listPending);

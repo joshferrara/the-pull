@@ -1,6 +1,8 @@
 import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 
+export const dynamic = "force-dynamic";
+
 
 function yesterdayET(): string {
   return new Date(Date.now() - 24 * 60 * 60 * 1000)

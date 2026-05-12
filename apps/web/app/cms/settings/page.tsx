@@ -46,3 +46,5 @@ export default function CmsSettingsPage() {
     </main>
   );
 }
+
+export const dynamic = "force-dynamic";

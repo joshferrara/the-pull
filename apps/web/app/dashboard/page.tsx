@@ -4,6 +4,8 @@ import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { DashboardClient } from "@/components/dashboard-client";
 
+export const dynamic = "force-dynamic";
+
 
 export default async function DashboardPage() {
   const session = await readSession();
