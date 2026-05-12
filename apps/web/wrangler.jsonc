@@ -39,14 +39,12 @@
   // "send_email": [
   //   { "name": "EMAIL", "destination_address": "deliveries@thepull.dev" }
   // ],
-  /*
-   * Custom routes. Add thepull.dev as a zone in this Cloudflare account first,
-   * then uncomment.
-   */
-  // "routes": [
-  //   { "pattern": "thepull.dev", "custom_domain": true },
-  //   { "pattern": "www.thepull.dev", "custom_domain": true }
-  // ],
+  "workers_dev": true,
+  "preview_urls": true,
+  "routes": [
+    { "pattern": "thepull.dev", "custom_domain": true },
+    { "pattern": "www.thepull.dev", "custom_domain": true }
+  ],
   /*
    * Spec section 5.13: Cloudflare Cron Triggers. The custom worker's
    * scheduled() handler maps each cron expression to a Convex action.
@@ -77,10 +75,6 @@
      * this to "The Pull <hello@thepull.dev>".
      */
     "EMAIL_FROM": "The Pull <onboarding@resend.dev>",
-    /*
-     * SITE_URL: points to the active public URL. Change to https://thepull.dev
-     * once the custom domain is wired (uncomment the routes block above).
-     */
-    "SITE_URL": "https://the-pull-prod.joshferrara.workers.dev"
+    "SITE_URL": "https://thepull.dev"
   }
 }
