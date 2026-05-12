@@ -1,6 +1,12 @@
 version: 2
 project_name: pull
 
+# Tags are prefixed `cli-v*` in the monorepo so they don't collide with web
+# app tags. The cli-release.yml workflow sets `GORELEASER_CURRENT_TAG` to the
+# semver portion (e.g. v0.1.0) before invoking goreleaser; the OSS edition
+# doesn't have the `monorepo:` block from GoReleaser Pro, so the workflow
+# does the prefix strip.
+
 before:
   hooks:
     - go mod tidy

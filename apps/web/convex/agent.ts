@@ -222,21 +222,40 @@ export const syncTwitterBookmarks = action({
   handler: async (
     ctx,
   ): Promise<
-    | { added: number; skipped: number; reason?: "twitter_not_configured" }
+    | { added: number; skipped: number; reason?: "twitter_not_configured" | "twitter_oauth_required" }
     | { added: number; skipped: number; error: number }
   > => {
-    const token = process.env.TWITTER_BEARER_TOKEN;
-    const userId = process.env.TWITTER_USER_ID;
-    if (!token || !userId) {
+    // The /2/users/:id/bookmarks endpoint requires OAuth 2.0 user-context auth,
+    // so prefer the stored curator token from twitterAuth. Fall back to the
+    // bearer for environments where someone wants to wire app-only-readable
+    // endpoints later.
+    const cmsEmail = process.env.CMS_EMAIL;
+    let accessToken: string | null = null;
+    let userId: string | null = process.env.TWITTER_USER_ID ?? null;
+    if (cmsEmail) {
+      const stored: {
+        accessToken: string;
+        expiresAt: number;
+        userId: string;
+      } | null = await ctx.runQuery(api.twitter_auth.get, {
+        curatorEmail: cmsEmail,
+      });
+      if (stored && stored.expiresAt > Date.now()) {
+        accessToken = stored.accessToken;
+        if (stored.userId) userId = stored.userId;
+      }
+    }
+    if (!accessToken) accessToken = process.env.TWITTER_BEARER_TOKEN ?? null;
+    if (!accessToken || !userId) {
       return {
         added: 0,
         skipped: 0,
-        reason: "twitter_not_configured" as const,
+        reason: accessToken ? "twitter_not_configured" : "twitter_oauth_required",
       };
     }
     const resp = await fetch(
       `https://api.x.com/2/users/${encodeURIComponent(userId)}/bookmarks?max_results=50&tweet.fields=author_id,entities,text,created_at&expansions=author_id&user.fields=username`,
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     if (!resp.ok) {
       const body = await resp.text();

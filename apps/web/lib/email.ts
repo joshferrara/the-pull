@@ -12,7 +12,13 @@ export interface EmailProvider {
   send(args: EmailPayload): Promise<{ id: string }>;
 }
 
-const FROM = "The Pull <hello@thepull.dev>";
+/**
+ * Sender address. Override via EMAIL_FROM env var (Worker `vars`). The default
+ * uses Resend's onboarding sender which works without a verified domain — fine
+ * for pre-launch testing. Once thepull.dev is verified, set this to
+ * "The Pull <hello@thepull.dev>".
+ */
+const FROM = process.env.EMAIL_FROM ?? "The Pull <onboarding@resend.dev>";
 
 /** Cloudflare Email Service via the `EMAIL` worker binding. */
 class CloudflareEmailProvider implements EmailProvider {

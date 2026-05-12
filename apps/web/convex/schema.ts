@@ -196,4 +196,18 @@ export default defineSchema({
     date: v.string(),
     requestCount: v.number(),
   }).index("by_token_date", ["tokenHash", "date"]),
+
+  /**
+   * Stores the OAuth 2.0 user-context tokens for X (Twitter) — needed
+   * because the `/2/users/:id/bookmarks` endpoint rejects app-only bearer
+   * tokens. Single-row table keyed by curator email.
+   */
+  twitterAuth: defineTable({
+    curatorEmail: v.string(),
+    accessToken: v.string(),
+    refreshToken: v.optional(v.string()),
+    expiresAt: v.number(),
+    scope: v.string(),
+    userId: v.string(),
+  }).index("by_curator", ["curatorEmail"]),
 });

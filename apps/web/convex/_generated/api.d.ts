@@ -19,8 +19,10 @@ import type * as email from "../email.js";
 import type * as events from "../events.js";
 import type * as prompts_v1 from "../prompts/v1.js";
 import type * as publish from "../publish.js";
+import type * as shared_email_payload from "../shared/email_payload.js";
 import type * as stats from "../stats.js";
 import type * as tokens from "../tokens.js";
+import type * as twitter_auth from "../twitter_auth.js";
 import type * as users from "../users.js";
 
 import type {
@@ -41,8 +43,10 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   "prompts/v1": typeof prompts_v1;
   publish: typeof publish;
+  "shared/email_payload": typeof shared_email_payload;
   stats: typeof stats;
   tokens: typeof tokens;
+  twitter_auth: typeof twitter_auth;
   users: typeof users;
 }>;
 

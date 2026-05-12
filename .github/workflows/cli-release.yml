@@ -27,6 +27,15 @@ jobs:
       - uses: sigstore/cosign-installer@v3
       - name: Run tests
         run: go test ./...
+      - name: Compute semver tag
+        id: tag
+        run: |
+          # OSS GoReleaser requires a valid semver tag. Strip the `cli-` prefix.
+          full="${GITHUB_REF#refs/tags/}"
+          short="${full#cli-}"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "Tag: $full → semver: $short"
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -36,6 +45,7 @@ jobs:
           workdir: apps/cli
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.short }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}

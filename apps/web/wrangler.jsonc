@@ -70,7 +70,13 @@
      *   "resend"     — requires RESEND_API_KEY secret
      *   "stub"       — captures sends into KV for the /api/internal/stub-emails debug endpoint (used pre-launch)
      */
-    "EMAIL_PROVIDER": "stub",
+    "EMAIL_PROVIDER": "resend",
+    /*
+     * EMAIL_FROM defaults to Resend's `onboarding@resend.dev` so sends work
+     * without a verified domain. Once thepull.dev is verified in Resend, set
+     * this to "The Pull <hello@thepull.dev>".
+     */
+    "EMAIL_FROM": "The Pull <onboarding@resend.dev>",
     /*
      * SITE_URL: points to the active public URL. Change to https://thepull.dev
      * once the custom domain is wired (uncomment the routes block above).
