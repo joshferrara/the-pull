@@ -2,7 +2,6 @@ import { VerifyClient } from "@/components/verify-client";
 
 export const dynamic = "force-dynamic";
 
-
 export default async function VerifyPage({
   searchParams,
 }: {
@@ -10,13 +9,12 @@ export default async function VerifyPage({
 }) {
   const { code, cli_callback, next } = await searchParams;
   return (
-    <main className="max-w-md mx-auto px-6 py-16">
-      <h1 className="text-2xl font-bold mb-3">Verifying…</h1>
+    <div className="max-w-md mx-auto px-6 py-24 w-full">
       <VerifyClient
         code={code}
         cliCallback={cli_callback}
         next={next ?? "/dashboard"}
       />
-    </main>
+    </div>
   );
 }

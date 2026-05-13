@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BootSequence } from "@/components/verify/boot-sequence";
 
 interface Props {
   code?: string;
@@ -9,18 +10,19 @@ interface Props {
   next: string;
 }
 
+type State =
+  | { kind: "loading" }
+  | { kind: "error"; message: string }
+  | { kind: "cli_done"; token: string }
+  | { kind: "redirecting"; greeting: string };
+
 export function VerifyClient({ code, cliCallback, next }: Props) {
   const router = useRouter();
-  const [state, setState] = useState<
-    | { kind: "loading" }
-    | { kind: "error"; message: string }
-    | { kind: "cli_done"; token: string }
-    | { kind: "redirecting" }
-  >({ kind: "loading" });
+  const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
     if (!code) {
-      setState({ kind: "error", message: "Missing code." });
+      setState({ kind: "error", message: "missing code." });
       return;
     }
     (async () => {
@@ -31,16 +33,11 @@ export function VerifyClient({ code, cliCallback, next }: Props) {
           body: JSON.stringify({ code, cli_callback: cliCallback }),
         });
         if (!resp.ok) {
-          const body = (await resp.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          setState({
-            kind: "error",
-            message: body.error ?? `error_${resp.status}`,
-          });
+          const body = (await resp.json().catch(() => ({}))) as { error?: string };
+          setState({ kind: "error", message: body.error ?? `error_${resp.status}` });
           return;
         }
-        const data = (await resp.json()) as { token: string };
+        const data = (await resp.json()) as { token: string; email?: string };
         if (cliCallback) {
           try {
             await fetch(cliCallback, {
@@ -53,8 +50,11 @@ export function VerifyClient({ code, cliCallback, next }: Props) {
           }
           setState({ kind: "cli_done", token: data.token });
         } else {
-          setState({ kind: "redirecting" });
-          router.replace(next);
+          setState({
+            kind: "redirecting",
+            greeting: data.email ? `welcome, ${data.email}.` : "welcome back.",
+          });
+          setTimeout(() => router.replace(next), 1400);
         }
       } catch {
         setState({ kind: "error", message: "network" });
@@ -64,26 +64,29 @@ export function VerifyClient({ code, cliCallback, next }: Props) {
 
   if (state.kind === "error") {
     return (
-      <p className="text-[color:var(--color-red)]">
-        Verification failed: {state.message}. Try requesting a new link.
-      </p>
+      <BootSequence
+        errored
+        finalMessage={`✗ ${state.message} · request a new link →`}
+      />
     );
   }
   if (state.kind === "cli_done") {
     return (
-      <div>
-        <p className="text-[color:var(--color-green)] mb-3">
-          Verified. You can return to your terminal.
+      <div className="space-y-4">
+        <BootSequence finalMessage="verified. return to your terminal." />
+        <p className="font-mono text-[var(--text-caption)] text-[color:var(--color-overlay1)]">
+          If <code className="text-[color:var(--color-text)]">pull</code> didn&apos;t receive the
+          token automatically, copy this and run{" "}
+          <code className="text-[color:var(--color-text)]">pull login --token &lt;value&gt;</code>:
         </p>
-        <p className="text-xs text-[color:var(--color-overlay1)]">
-          If <code>pull</code> didn&apos;t receive the token automatically,
-          copy this and run <code>pull login --token &lt;value&gt;</code>:
-        </p>
-        <code className="block mt-2 p-2 bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] rounded text-xs break-all">
+        <code className="block p-3 bg-[color:var(--color-mantle)] border border-[color:var(--color-rule)] rounded text-[var(--text-caption)] break-all">
           {state.token}
         </code>
       </div>
     );
   }
-  return <p className="text-[color:var(--color-subtext1)]">Verifying…</p>;
+  if (state.kind === "redirecting") {
+    return <BootSequence finalMessage={`${state.greeting} redirecting to ~/dashboard…`} />;
+  }
+  return <BootSequence finalMessage="" />;
 }

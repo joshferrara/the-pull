@@ -8,7 +8,7 @@ type State =
   | { kind: "ok" }
   | { kind: "error"; message: string };
 
-export function EmailSignup() {
+export function EmailSignup({ id = "email" }: { id?: string }) {
   const [state, setState] = useState<State>({ kind: "idle" });
   const [email, setEmail] = useState("");
 
@@ -22,13 +22,8 @@ export function EmailSignup() {
         body: JSON.stringify({ email, source: "landing" }),
       });
       if (!resp.ok) {
-        const data = (await resp.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        setState({
-          kind: "error",
-          message: data.error ?? `error_${resp.status}`,
-        });
+        const data = (await resp.json().catch(() => ({}))) as { error?: string };
+        setState({ kind: "error", message: data.error ?? `error_${resp.status}` });
         return;
       }
       setState({ kind: "ok" });
@@ -39,15 +34,16 @@ export function EmailSignup() {
 
   if (state.kind === "ok") {
     return (
-      <div className="text-[color:var(--color-green)] text-sm">
-        Check your inbox — magic link sent to{" "}
-        <span className="font-mono">{email}</span>.
+      <div id={id} className="font-mono text-[var(--text-caption)] text-[color:var(--color-prompt)] flex items-center gap-2">
+        <span>✓</span>
+        <span>magic link sent to</span>
+        <span className="text-[color:var(--color-text)]">{email}</span>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2">
+    <form id={id} onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2 max-w-md">
       <input
         type="email"
         required
@@ -55,17 +51,17 @@ export function EmailSignup() {
         placeholder="you@example.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="flex-1 px-3 py-2 rounded-md bg-[color:var(--color-mantle)] border border-[color:var(--color-surface1)] text-[color:var(--color-text)] placeholder:text-[color:var(--color-overlay0)] focus:outline-none focus:border-[color:var(--color-mauve)]"
+        className="flex-1 px-3 py-2 rounded-md bg-[color:var(--color-mantle)] border border-[color:var(--color-rule)] text-[color:var(--color-text)] placeholder:text-[color:var(--color-overlay0)] focus:outline-none focus:border-[color:var(--color-mauve)] font-mono text-[var(--text-body-sm)]"
       />
       <button
         type="submit"
         disabled={state.kind === "loading"}
-        className="px-4 py-2 rounded-md bg-[color:var(--color-mauve)] text-[color:var(--color-crust)] font-medium hover:opacity-90 disabled:opacity-50"
+        className="px-4 py-2 rounded-md bg-[color:var(--color-mauve)] text-[color:var(--color-crust)] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
-        {state.kind === "loading" ? "Sending…" : "Get the brief"}
+        {state.kind === "loading" ? "sending…" : "get the brief"}
       </button>
       {state.kind === "error" && (
-        <p className="text-[color:var(--color-red)] text-xs mt-1 sm:mt-0">
+        <p className="text-[color:var(--color-red)] text-[var(--text-micro)] mt-1 sm:mt-0 font-mono">
           {state.message}
         </p>
       )}
