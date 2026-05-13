@@ -112,15 +112,15 @@ export const publishBrief = action({
   handler: async (
     ctx,
     { date },
-  ): Promise<
-    | { ok: false; reason: "already_published" }
-    | { ok: true; edition: number }
-  > => {
+  ): Promise<{ ok: true; edition: number; republished: boolean }> => {
     const brief: Doc<"briefs"> | null = await ctx.runQuery(api.briefs.getByDate, { date });
     if (!brief) throw new Error(`No brief for ${date}`);
-    if (brief.status === "published") {
-      return { ok: false, reason: "already_published" as const };
-    }
+    // Re-publishing is supported: we re-render the JSON/MD/HTML/RSS
+    // artifacts and bump publishedAt so the latest content goes live. We
+    // skip the email dispatch on re-publish — the brief already shipped, and
+    // re-sending would spam subscribers when the curator just wants to fix
+    // a typo or add an item.
+    const isRepublish = brief.status === "published";
 
     const kept = (await ctx.runQuery(api.candidates.listKept, {
       targetDate: date,
@@ -187,13 +187,16 @@ export const publishBrief = action({
     });
 
     // Best-effort email dispatch — never block publish on send failures.
-    try {
-      await ctx.runAction(internal.email.sendDailyBrief, { briefDate: date });
-    } catch (err) {
-      console.error("Email dispatch failed", err);
+    // Skip on re-publish (see comment at top of handler).
+    if (!isRepublish) {
+      try {
+        await ctx.runAction(internal.email.sendDailyBrief, { briefDate: date });
+      } catch (err) {
+        console.error("Email dispatch failed", err);
+      }
     }
 
-    return { ok: true as const, edition: brief.edition };
+    return { ok: true as const, edition: brief.edition, republished: isRepublish };
   },
 });
 
@@ -239,10 +242,7 @@ export const publishScheduledBrief = internalAction({
   args: {},
   handler: async (
     ctx,
-  ): Promise<
-    | { ok: false; reason: "already_published" }
-    | { ok: true; edition: number }
-  > => {
+  ): Promise<{ ok: true; edition: number; republished: boolean }> => {
     const today = new Date().toLocaleDateString("en-CA", {
       timeZone: "America/New_York",
     });

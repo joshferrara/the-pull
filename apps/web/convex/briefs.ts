@@ -80,11 +80,14 @@ export const getByDate = query({
 export const getLatestPublished = query({
   args: {},
   handler: async (ctx) => {
+    // Sort by publishedAt desc so the most-recently-published brief wins,
+    // not the most-recently-created row. Re-publishing an existing brief
+    // bumps publishedAt, so this picks up curator updates.
     const rows = await ctx.db
       .query("briefs")
       .withIndex("by_status", (q) => q.eq("status", "published"))
-      .order("desc")
-      .take(1);
+      .collect();
+    rows.sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
     return rows[0] ?? null;
   },
 });
