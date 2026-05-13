@@ -167,4 +167,5 @@ html.scanlines-on .scanlines-overlay {
 @media (prefers-reduced-motion: reduce) {
   .caret { animation: none; opacity: 1; }
   .pulse-dot { animation: none; }
+  .scanlines-overlay { transition: none; }
 }
