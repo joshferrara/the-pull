@@ -70,11 +70,11 @@
      */
     "EMAIL_PROVIDER": "resend",
     /*
-     * EMAIL_FROM defaults to Resend's `onboarding@resend.dev` so sends work
-     * without a verified domain. Once thepull.dev is verified in Resend, set
-     * this to "The Pull <hello@thepull.dev>".
+     * Sender address. thepull.dev is verified in Resend (2026-05-13), so we
+     * send from the real brand domain. Update the local-part if the inbox
+     * routing changes (Resend doesn't actually receive on this address).
      */
-    "EMAIL_FROM": "The Pull <onboarding@resend.dev>",
+    "EMAIL_FROM": "The Pull <hello@thepull.dev>",
     "SITE_URL": "https://thepull.dev"
   }
 }
