@@ -7,6 +7,9 @@ import { StatusBar } from "@/components/terminal";
 import { BriefHeader } from "@/components/brief/brief-header";
 import { BriefItem } from "@/components/brief/brief-item";
 import { PreviewGate } from "@/components/brief/preview-gate";
+import { ProgressBar } from "@/components/brief/progress-bar";
+import { AnchorRail } from "@/components/brief/anchor-rail";
+import { KeyboardShortcuts } from "@/components/brief/keyboard-shortcuts";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +63,9 @@ export default async function BriefPage({ params, searchParams }: PageProps) {
 
   return (
     <article className="max-w-[var(--w-prose)] mx-auto px-6 py-12">
+      <ProgressBar />
+      <AnchorRail count={display.items.length} />
+      <KeyboardShortcuts count={display.items.length} />
       <BriefHeader
         edition={display.edition}
         date={display.date}
