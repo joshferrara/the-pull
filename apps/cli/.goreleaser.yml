@@ -82,7 +82,10 @@ scoops:
     license: "MIT"
 
 changelog:
-  use: github
+  # `git` not `github`: the workflow strips the `cli-` prefix and creates a
+  # local bare-semver tag for GoReleaser, but those bare tags are never pushed
+  # to origin. Asking the GitHub compare API for `v0.1.0...v0.2.0` would 404.
+  use: git
   sort: asc
   filters:
     exclude:
