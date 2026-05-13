@@ -99,9 +99,13 @@ export function VerifyClient({ code, cliCallback, next }: Props) {
         const data = (await resp.json()) as { token: string; email?: string };
         if (effectiveCallback) {
           try {
+            // text/plain (a CORS-safelisted content type) keeps the browser
+            // from sending a preflight OPTIONS to the CLI's loopback server,
+            // which only handles POST. The CLI's handler json.Unmarshal's the
+            // body regardless of Content-Type.
             await fetch(effectiveCallback, {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: { "content-type": "text/plain" },
               body: JSON.stringify({ token: data.token }),
             });
           } catch {
