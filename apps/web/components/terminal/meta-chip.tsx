@@ -9,7 +9,8 @@ interface Props {
 const BAR_CELLS = 5;
 
 function bar(value: number) {
-  const filled = Math.round(Math.max(0, Math.min(1, value)) * BAR_CELLS);
+  const clamped = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+  const filled = Math.round(clamped * BAR_CELLS);
   return "▓".repeat(filled) + "░".repeat(BAR_CELLS - filled);
 }
 
