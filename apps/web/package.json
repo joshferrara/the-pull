@@ -15,28 +15,29 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@react-email/components": "^0.0.32",
     "@the-pull/schema": "workspace:*",
     "@the-pull/shared": "workspace:*",
     "convex": "^1.17.0",
+    "geist": "1.7.0",
+    "marked": "^15.0.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-email": "^3.0.6",
-    "@react-email/components": "^0.0.32",
-    "marked": "^15.0.0"
+    "react-email": "^3.0.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
+    "@eslint/eslintrc": "^3.2.0",
     "@opennextjs/cloudflare": "^1.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@eslint/eslintrc": "^3.2.0",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.2.0",
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0",
     "postcss": "^8.5.0",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
     "wrangler": "^4.0.0"
   }
