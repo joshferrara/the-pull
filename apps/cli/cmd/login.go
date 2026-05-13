@@ -8,9 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
-	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/joshferrara/the-pull/apps/cli/internal/api"
@@ -103,24 +100,20 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 	go func() { _ = srv.Serve(listener) }()
 
-	// Trigger the magic-link send.
+	// Trigger the magic-link send — the server bakes our loopback callback
+	// into the verify URL it emails to the user, so clicking the link in the
+	// email is the only step left for them.
 	ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
 	defer cancel()
 	client := api.New(cfg.BaseURL, "", "pull/"+versionStr)
-	if err := client.Register(ctx, email); err != nil {
+	if err := client.Register(ctx, email, callback); err != nil {
 		return fmt.Errorf("register: %w", err)
 	}
 
-	verifyURL, _ := url.Parse(cfg.BaseURL + "/verify")
-	q := verifyURL.Query()
-	q.Set("cli_callback", callback)
-	q.Set("next", "/dashboard")
-	verifyURL.RawQuery = q.Encode()
-
 	fmt.Println("Magic link sent to", email)
-	fmt.Println("After verifying, paste this URL in your browser if it didn't open:")
-	fmt.Println("  ", verifyURL.String())
-	_ = openBrowser(verifyURL.String())
+	fmt.Println("Click the link in your inbox to finish signing in.")
+	fmt.Println("(If you bounce to a logged-in browser instead of this CLI,")
+	fmt.Println(" your `pull` is from before this flow shipped — reinstall and retry.)")
 
 	select {
 	case token := <-tokenCh:
@@ -139,15 +132,3 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func openBrowser(target string) error {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", target)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", target)
-	default:
-		cmd = exec.Command("xdg-open", target)
-	}
-	return cmd.Start()
-}

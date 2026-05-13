@@ -120,9 +120,16 @@ func (c *Client) Me(ctx context.Context) (*AuthMeResponse, error) {
 	return &me, nil
 }
 
-func (c *Client) Register(ctx context.Context, email string) error {
-	resp, err := c.request(ctx, http.MethodPost, "/api/v1/auth/register",
-		map[string]string{"email": email, "source": "cli"})
+// Register triggers a magic-link email for the given address. If cliCallback
+// is non-empty (a loopback URL like http://127.0.0.1:PORT/callback), the
+// server embeds it in the magic-link URL so clicking the email completes the
+// CLI login flow with no extra browser interaction.
+func (c *Client) Register(ctx context.Context, email, cliCallback string) error {
+	body := map[string]string{"email": email, "source": "cli"}
+	if cliCallback != "" {
+		body["cli_callback"] = cliCallback
+	}
+	resp, err := c.request(ctx, http.MethodPost, "/api/v1/auth/register", body)
 	if err != nil {
 		return err
 	}
