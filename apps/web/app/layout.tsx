@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
+import { SiteHeader } from "@/components/chrome/site-header";
+import { SiteFooter } from "@/components/chrome/site-footer";
 
 export const metadata: Metadata = {
   title: "The Pull — The daily AI brief, delivered where you build",
@@ -31,7 +33,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
       <body className="min-h-screen flex flex-col">
         <div className="scanlines-overlay" aria-hidden />
-        {children}
+        <SiteHeader />
+        <main className="flex-1 flex flex-col">{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );
