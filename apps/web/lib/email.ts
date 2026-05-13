@@ -153,11 +153,15 @@ export async function magicLinkEmail(args: {
   email: string;
   code: string;
   callbackPath?: string;
+  /** Loopback URL of a waiting CLI listener. The register endpoint validates
+   * this is a loopback host before passing it in. */
+  cliCallback?: string;
 }): Promise<EmailPayload> {
   const base = siteUrl();
-  const url = `${base}/verify?code=${encodeURIComponent(args.code)}${
-    args.callbackPath ? `&next=${encodeURIComponent(args.callbackPath)}` : ""
-  }`;
+  const params = new URLSearchParams({ code: args.code });
+  if (args.callbackPath) params.set("next", args.callbackPath);
+  if (args.cliCallback) params.set("cli_callback", args.cliCallback);
+  const url = `${base}/verify?${params.toString()}`;
   // React Email render is dynamic-imported so it's only loaded in the email
   // send path (the public marketing / API routes shouldn't pay this cost).
   const [{ render }, { MagicLinkEmail }] = await Promise.all([
