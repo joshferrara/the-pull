@@ -3,34 +3,32 @@ import { readSession } from "@/lib/auth";
 import { convexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import { DashboardClient } from "@/components/dashboard-client";
+import { PromptLine } from "@/components/terminal";
 
 export const dynamic = "force-dynamic";
-
 
 export default async function DashboardPage() {
   const session = await readSession();
   if (!session) redirect("/?reauth=1");
-  const user = await convexClient().query(api.users.getById, {
-    userId: session.userId,
-  });
+  const user = await convexClient().query(api.users.getById, { userId: session.userId });
   if (!user) redirect("/");
-  const tokens = await convexClient().query(api.tokens.listForUser, {
-    userId: session.userId,
-  });
+  const tokens = await convexClient().query(api.tokens.listForUser, { userId: session.userId });
   const signupDate = new Date(user.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
   return (
-    <main className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-[color:var(--color-subtext0)] mb-1">
-        Signed in as <code>{user.email}</code>
-      </p>
-      <p className="text-xs text-[color:var(--color-overlay1)] mb-8">
-        Member since {signupDate}
-      </p>
+    <article className="max-w-[var(--w-wide)] mx-auto px-6 py-12">
+      <header className="mb-12">
+        <PromptLine path="~/account">whoami</PromptLine>
+        <h1 className="mt-4 font-mono text-[var(--text-h2)] text-[color:var(--color-text)] break-all">
+          {user.email}
+        </h1>
+        <p className="mt-1 font-mono text-[var(--text-caption)] text-[color:var(--color-overlay1)]">
+          member since {signupDate} · tier: free
+        </p>
+      </header>
       <DashboardClient
         userId={session.userId}
         initialPreferences={user.preferences}
@@ -45,6 +43,6 @@ export default async function DashboardPage() {
           revoked: !!t.revokedAt,
         }))}
       />
-    </main>
+    </article>
   );
 }
