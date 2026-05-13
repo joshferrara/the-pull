@@ -12,6 +12,12 @@ const nextConfig = {
   transpilePackages: ["@the-pull/schema", "@the-pull/shared"],
   // Pin the monorepo root so Next.js doesn't accidentally pick the home-dir lockfile.
   outputFileTracingRoot: path.join(__dirname, "..", ".."),
+  async rewrites() {
+    return [
+      // Public installer URL — `curl -fsSL https://thepull.dev/install | sh`
+      { source: "/install", destination: "/api/install" },
+    ];
+  },
 };
 
 initOpenNextCloudflareForDev();
