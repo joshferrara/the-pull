@@ -37,7 +37,13 @@ export function BriefItem({ item, index, isLast, isPreview }: Props) {
   const fullItem = !isPreview ? (item as BriefItemType) : null;
   const minutes = fullItem ? readMinutes(fullItem) : null;
   return (
-    <li id={`item-${index + 1}`} className="brief-prose scroll-mt-24">
+    <li
+      id={`item-${index + 1}`}
+      className={
+        "brief-prose scroll-mt-24 " +
+        (isPreview ? "opacity-60 pointer-events-none" : "")
+      }
+    >
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <MetaChip label={item.category} />
         <MetaChip label={item.importance} bar={importanceToBar(item.importance)} />

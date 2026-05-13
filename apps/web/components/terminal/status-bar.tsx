@@ -28,7 +28,7 @@ export function StatusBar({ edition, date, path = "~/the-pull" }: Props) {
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-40 backdrop-blur-md bg-[color:color-mix(in_oklab,var(--color-crust)_85%,transparent)] border-t border-[color:var(--color-surface1)]"
-      role="contentinfo"
+      role="status"
       aria-label="Site status"
     >
       <div className="max-w-[var(--w-grid)] mx-auto px-6 h-9 flex items-center gap-3 font-mono text-[var(--text-micro)] text-[color:var(--color-overlay2)]">

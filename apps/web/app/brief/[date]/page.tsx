@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { getBriefJson } from "@/lib/r2";
 import { verifyWebToken } from "@/lib/auth";
-import { isPreview, toPreview } from "@the-pull/schema";
+import type { BriefItem, BriefPreview } from "@the-pull/schema";
 import type { Metadata } from "next";
 import { StatusBar } from "@/components/terminal";
 import { BriefHeader } from "@/components/brief/brief-header";
-import { BriefItem } from "@/components/brief/brief-item";
+import { BriefItem as BriefItemView } from "@/components/brief/brief-item";
 import { PreviewGate } from "@/components/brief/preview-gate";
 import { ProgressBar } from "@/components/brief/progress-bar";
 import { AnchorRail } from "@/components/brief/anchor-rail";
@@ -45,6 +45,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const FREE_ITEMS = 3;
 
+type PreviewItem = BriefPreview["items"][number];
+
+function previewItem(item: BriefItem): PreviewItem {
+  return {
+    id: item.id,
+    title: item.title,
+    category: item.category,
+    importance: item.importance,
+    tags: item.tags,
+  };
+}
+
 export default async function BriefPage({ params, searchParams }: PageProps) {
   const { date } = await params;
   const { t: signedToken } = await searchParams;
@@ -58,42 +70,46 @@ export default async function BriefPage({ params, searchParams }: PageProps) {
     if (verified && verified.briefDate === date) unlocked = true;
   }
 
-  const display = unlocked ? brief : toPreview(brief);
-  const preview = isPreview(display);
-  const editorNote = !preview && "editor_note" in display ? display.editor_note : undefined;
+  // When locked, render full content for the first FREE_ITEMS, preview shape for the rest.
+  const displayItems: Array<{ item: BriefItem | PreviewItem; isPreview: boolean }> = unlocked
+    ? brief.items.map((item) => ({ item, isPreview: false }))
+    : brief.items.map((item, i) => ({
+        item: i < FREE_ITEMS ? item : previewItem(item),
+        isPreview: i >= FREE_ITEMS,
+      }));
+
+  const editorNote = unlocked ? brief.editor_note : undefined;
+  const lockedCount = unlocked ? 0 : Math.max(0, brief.items.length - FREE_ITEMS);
 
   return (
     <article className="max-w-[var(--w-prose)] mx-auto px-6 py-12">
       <ProgressBar />
-      <AnchorRail count={display.items.length} />
-      <KeyboardShortcuts count={display.items.length} />
+      <AnchorRail count={brief.items.length} />
+      <KeyboardShortcuts count={brief.items.length} />
       <BriefHeader
-        edition={display.edition}
-        date={display.date}
-        itemCount={display.items.length}
+        edition={brief.edition}
+        date={brief.date}
+        itemCount={brief.items.length}
         editorNote={editorNote}
       />
 
       <ol className="space-y-12 list-none p-0">
-        {display.items.map((item, i) => {
-          const gated = preview && i >= FREE_ITEMS;
-          return (
-            <BriefItem
-              key={item.id}
-              item={item}
-              index={i}
-              isLast={i === display.items.length - 1}
-              isPreview={gated}
-            />
-          );
-        })}
+        {displayItems.map((row, i) => (
+          <BriefItemView
+            key={row.item.id}
+            item={row.item}
+            index={i}
+            isLast={i === displayItems.length - 1}
+            isPreview={row.isPreview}
+          />
+        ))}
       </ol>
 
-      {preview && <PreviewGate remaining={Math.max(0, display.items.length - FREE_ITEMS)} />}
+      {!unlocked && lockedCount > 0 && <PreviewGate remaining={lockedCount} />}
 
-      <EditionNav date={display.date} />
+      <EditionNav date={brief.date} />
 
-      <StatusBar edition={display.edition} date={display.date} path={`~/brief/${display.date}`} />
+      <StatusBar edition={brief.edition} date={brief.date} path={`~/brief/${brief.date}`} />
     </article>
   );
 }
