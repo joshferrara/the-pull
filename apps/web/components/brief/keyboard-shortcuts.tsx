@@ -48,8 +48,17 @@ export function KeyboardShortcuts({ count }: Props) {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-[color:color-mix(in_oklab,var(--color-crust)_75%,transparent)] flex items-center justify-center p-6">
-      <div className="max-w-sm w-full">
+    <div
+      className="fixed inset-0 z-50 bg-[color:color-mix(in_oklab,var(--color-crust)_75%,transparent)] flex items-center justify-center p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        className="max-w-sm w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         <BoxFrame label="keyboard">
           <ul className="font-mono text-[var(--text-body-sm)] space-y-1.5 text-[color:var(--color-subtext1)]">
             <Row k="j / k" v="next / prev item" />
