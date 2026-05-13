@@ -12,7 +12,7 @@ export function FinalCta() {
               <span className="text-[color:var(--color-prompt)]">$</span>{" "}
               <span className="text-[color:var(--color-text)]">subscribe</span>
             </p>
-            <div className="mt-3" id="email">
+            <div className="mt-3">
               <EmailSignup />
             </div>
           </div>

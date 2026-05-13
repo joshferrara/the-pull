@@ -33,7 +33,7 @@ export function Hero({ brief }: Props) {
         </div>
 
         <div className={"mt-6 max-w-md " + (emailOpen ? "block" : "hidden")}>
-          <EmailSignup />
+          <EmailSignup id="hero-email" />
         </div>
 
         <div className="mt-6 text-[var(--text-caption)] text-[color:var(--color-overlay1)] font-mono">
