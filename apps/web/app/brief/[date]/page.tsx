@@ -10,6 +10,7 @@ import { PreviewGate } from "@/components/brief/preview-gate";
 import { ProgressBar } from "@/components/brief/progress-bar";
 import { AnchorRail } from "@/components/brief/anchor-rail";
 import { KeyboardShortcuts } from "@/components/brief/keyboard-shortcuts";
+import { EditionNav } from "@/components/brief/edition-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -90,12 +91,7 @@ export default async function BriefPage({ params, searchParams }: PageProps) {
 
       {preview && <PreviewGate remaining={Math.max(0, display.items.length - FREE_ITEMS)} />}
 
-      <footer className="mt-20 pt-6 border-t border-[color:var(--color-rule)] font-mono text-[var(--text-caption)] text-[color:var(--color-overlay1)]">
-        Get this in your terminal:{" "}
-        <code className="text-[color:var(--color-text)]">
-          curl -fsSL https://thepull.dev/install | sh
-        </code>
-      </footer>
+      <EditionNav date={display.date} />
 
       <StatusBar edition={display.edition} date={display.date} path={`~/brief/${display.date}`} />
     </article>
